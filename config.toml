@@ -1,0 +1,6 @@
+[database]
+host = "validator-dashboard.chexhu4rkdnf.ap-northeast-2.rds.amazonaws.com"
+port = "5432"
+username = "postgres"
+password = "a4xadmin"
+dbname = "dashboard"
