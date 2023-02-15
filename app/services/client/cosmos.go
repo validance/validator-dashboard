@@ -9,34 +9,44 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"math"
+	"math/big"
 	"sync"
 )
 
 const STRIDE = 1000
 
+type GrantCommission struct {
+	delegatorAddr string
+	commission    *distribution.QueryDelegationRewardsResponse
+}
+
 type CosmosClient interface {
-	ValidatorDelegations() ([]staking.DelegationResponse, error)
+	ValidatorDelegations() (map[string]staking.DelegationResponse, error)
+	ValidatorIncome() (*big.Int, error)
+	GrantRewards() (map[string]*distribution.QueryDelegationRewardsResponse, error)
 }
 
 type ValidatorQueryClient interface {
 	validatorDelegation(offset uint64, limit uint64) (*staking.QueryValidatorDelegationsResponse, error)
-	selfDelegationReward()
+	selfDelegationReward() (*distribution.QueryDelegationRewardsResponse, error)
 	commission() (*distribution.QueryValidatorCommissionResponse, error)
 }
 
 type GrantQueryClient interface {
-	reward() (*distribution.QueryDelegationTotalRewardsResponse, error)
+	rewards() (map[string]*distribution.QueryDelegationRewardsResponse, error)
 }
 
 type validatorQueryClient struct {
+	validatorOperatorAddr   string
 	validatorAddr           string
 	stakingQueryClient      staking.QueryClient
 	distributionQueryClient distribution.QueryClient
 }
 
 type grantQueryClient struct {
-	grantWalletAddr    string
-	distributionClient distribution.QueryClient
+	validatorOperatorAddr string
+	grantWalletAddr       []string
+	distributionClient    distribution.QueryClient
 }
 
 type cosmosClient struct {
@@ -46,7 +56,7 @@ type cosmosClient struct {
 	grantQueryClient     GrantQueryClient
 }
 
-func NewCosmosClient(url string, validatorAddr, grantWalletAddr string) (CosmosClient, error) {
+func NewCosmosClient(url string, validatorOperatorAddr string, validatorAddr string, grantWalletAddr ...string) (CosmosClient, error) {
 	grpcConn, err := grpc.Dial(
 		url,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
@@ -60,12 +70,14 @@ func NewCosmosClient(url string, validatorAddr, grantWalletAddr string) (CosmosC
 	distributionClient := distribution.NewQueryClient(grpcConn)
 
 	vqc := &validatorQueryClient{
+		validatorOperatorAddr,
 		validatorAddr,
 		stakingClient,
 		distributionClient,
 	}
 
 	gqc := &grantQueryClient{
+		validatorOperatorAddr,
 		grantWalletAddr,
 		distributionClient,
 	}
@@ -82,7 +94,7 @@ func (v validatorQueryClient) validatorDelegation(offset uint64, limit uint64) (
 	res, err := v.stakingQueryClient.ValidatorDelegations(
 		context.Background(),
 		&staking.QueryValidatorDelegationsRequest{
-			ValidatorAddr: v.validatorAddr,
+			ValidatorAddr: v.validatorOperatorAddr,
 			Pagination: &query.PageRequest{
 				Key:        nil,
 				Offset:     offset,
@@ -95,25 +107,25 @@ func (v validatorQueryClient) validatorDelegation(offset uint64, limit uint64) (
 	return res, err
 }
 
-func (c cosmosClient) appendDelegationResponses(totalValidatorDelegations *[]staking.DelegationResponse, validatorDelegations staking.DelegationResponses) {
+func (c cosmosClient) appendDelegationResponses(totalValidatorDelegations map[string]staking.DelegationResponse, validatorDelegations staking.DelegationResponses) {
 	for _, d := range validatorDelegations {
-		*totalValidatorDelegations = append(*totalValidatorDelegations, d)
+		totalValidatorDelegations[d.GetDelegation().DelegatorAddress] = d
 	}
 }
 
-func (c cosmosClient) ValidatorDelegations() ([]staking.DelegationResponse, error) {
-
-	var validatorDelegations []staking.DelegationResponse
+func (c cosmosClient) ValidatorDelegations() (map[string]staking.DelegationResponse, error) {
+	validatorDelegations := make(map[string]staking.DelegationResponse)
 	var wg sync.WaitGroup
 
 	// initial fetch to get total data
 	res, err := c.validatorQueryClient.validatorDelegation(0, STRIDE)
 
 	if err != nil {
+		fmt.Println(err)
 		return nil, err
 	}
 
-	c.appendDelegationResponses(&validatorDelegations, res.GetDelegationResponses())
+	c.appendDelegationResponses(validatorDelegations, res.GetDelegationResponses())
 
 	total := res.GetPagination().GetTotal()
 	fmt.Printf("total: %d\n", total)
@@ -149,35 +161,94 @@ func (c cosmosClient) ValidatorDelegations() ([]staking.DelegationResponse, erro
 
 	// pop data from buffered channel
 	for vd := range ch {
-		c.appendDelegationResponses(&validatorDelegations, vd)
+		c.appendDelegationResponses(validatorDelegations, vd)
 	}
 
 	return validatorDelegations, err
 }
 
-func (v validatorQueryClient) selfDelegationReward() {
+func (c cosmosClient) ValidatorIncome() (*big.Int, error) {
+	sdr, sdrErr := c.validatorQueryClient.selfDelegationReward()
+
+	if sdrErr != nil {
+		fmt.Println(sdrErr)
+		return nil, sdrErr
+	}
+
+	cm, cmErr := c.validatorQueryClient.commission()
+
+	if cmErr != nil {
+		fmt.Println(cmErr)
+		return nil, cmErr
+	}
+
+	commission := cm.GetCommission()
+	income := commission.GetCommission()[0].Add(sdr.GetRewards()[0])
+
+	return income.Amount.BigInt(), nil
+}
+
+func (c cosmosClient) GrantRewards() (map[string]*distribution.QueryDelegationRewardsResponse, error) {
+	return c.grantQueryClient.rewards()
+}
+
+func (v validatorQueryClient) selfDelegationReward() (*distribution.QueryDelegationRewardsResponse, error) {
+	res, err := v.distributionQueryClient.DelegationRewards(
+		context.Background(),
+		&distribution.QueryDelegationRewardsRequest{
+			DelegatorAddress: v.validatorAddr,
+			ValidatorAddress: v.validatorOperatorAddr,
+		})
+	return res, err
 }
 
 func (v validatorQueryClient) commission() (*distribution.QueryValidatorCommissionResponse, error) {
 	res, err := v.distributionQueryClient.ValidatorCommission(
 		context.Background(),
 		&distribution.QueryValidatorCommissionRequest{
-			ValidatorAddress: v.validatorAddr,
+			ValidatorAddress: v.validatorOperatorAddr,
 		})
 
 	return res, err
 }
 
-func (v validatorQueryClient) validatorIncome() {
-	// TODO return sum of reward and commission values
+// reward of grant wallet address delegated to given validator
+func (g grantQueryClient) rewards() (map[string]*distribution.QueryDelegationRewardsResponse, error) {
+	var wg sync.WaitGroup
+	wg.Add(len(g.grantWalletAddr))
 
-}
+	delegationRewards := make(map[string]*distribution.QueryDelegationRewardsResponse)
+	ch := make(chan *GrantCommission, len(g.grantWalletAddr))
 
-func (g grantQueryClient) reward() (*distribution.QueryDelegationTotalRewardsResponse, error) {
-	res, err := g.distributionClient.DelegationTotalRewards(context.Background(), &distribution.QueryDelegationTotalRewardsRequest{
-		DelegatorAddress: g.grantWalletAddr,
-	})
+	for _, da := range g.grantWalletAddr {
+		da := da
+		go func() {
+			defer wg.Done()
+			fmt.Println(da)
+			res, err := g.distributionClient.DelegationRewards(context.Background(), &distribution.QueryDelegationRewardsRequest{
+				DelegatorAddress: da,
+				ValidatorAddress: g.validatorOperatorAddr,
+			})
 
-	return res, err
+			gc := GrantCommission{
+				da, res,
+			}
+
+			ch <- &gc
+
+			if err != nil {
+				fmt.Println(err)
+			}
+		}()
+	}
+
+	wg.Wait()
+	close(ch)
+
+	for r := range ch {
+		delegationRewards[r.delegatorAddr] = r.commission
+	}
+
+	return delegationRewards, nil
 
 }
