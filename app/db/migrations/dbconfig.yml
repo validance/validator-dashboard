@@ -1,0 +1,5 @@
+production:
+  dialect: postgres
+  datasource: host=validator-dashboard.chexhu4rkdnf.ap-northeast-2.rds.amazonaws.com port=5432 user=postgres password=a4xadmin dbname=dashboard sslmode=disable
+  dir: .
+  table: _migrations
