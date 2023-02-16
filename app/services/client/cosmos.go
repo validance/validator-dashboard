@@ -197,7 +197,8 @@ func (c cosmosClient) ValidatorIncome() (*big.Int, error) {
 	}
 
 	commission := cm.GetCommission()
-	income := commission.GetCommission()[0].Add(sdr.GetRewards()[0]).Amount.BigInt()
+
+	income := commission.GetCommission().AmountOf(c.denom).Add(sdr.GetRewards().AmountOf(c.denom)).BigInt()
 	income = income.Div(income, coin_c)
 
 	return income, nil
