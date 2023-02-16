@@ -4,12 +4,12 @@ CREATE TYPE address_type AS ENUM ('new', 'existing', 'leave', 'return');
 
 CREATE TABLE IF NOT EXISTS delegation_history
 (
-    id             SERIAL PRIMARY KEY,
-    address        VARCHAR(256) NOT NULL,
-    target_valoper VARCHAR(256),
-    chain          VARCHAR(64)  NOT NULL,
-    amount         VARCHAR(256) NOT NULL,
-    create_dt      TIMESTAMP    NOT NULL default current_timestamp
+    id        SERIAL PRIMARY KEY,
+    address   VARCHAR(256) NOT NULL,
+    validator VARCHAR(256),
+    chain     VARCHAR(64)  NOT NULL,
+    amount    VARCHAR(256) NOT NULL,
+    create_dt TIMESTAMP    NOT NULL default current_timestamp
 );
 
 CREATE INDEX IF NOT EXISTS idx_delegation_history_address ON delegation_history (address);
@@ -19,11 +19,11 @@ CREATE INDEX IF NOT EXISTS idx_delegation_history_address_chain_create_dt ON del
 CREATE TABLE IF NOT EXISTS address_status
 (
     address    VARCHAR(256) PRIMARY KEY,
-    chain      VARCHAR(64)    NOT NULL,
+    chain      VARCHAR(64)  NOT NULL,
     label      address_label,
     status     address_type NOT NULL DEFAULT 'new',
-    create_dt  TIMESTAMP      NOT NULL DEFAULT current_timestamp,
-    updated_dt TIMESTAMP      NOT NULL DEFAULT current_timestamp
+    create_dt  TIMESTAMP    NOT NULL DEFAULT current_timestamp,
+    updated_dt TIMESTAMP    NOT NULL DEFAULT current_timestamp
 );
 
 CREATE INDEX IF NOT EXISTS idx_address_status_create_dt ON address_status (create_dt);

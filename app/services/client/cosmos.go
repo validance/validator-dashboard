@@ -49,6 +49,7 @@ type grantQueryClient struct {
 
 type cosmosClient struct {
 	grpcConn             *grpc.ClientConn
+	chain                string
 	denom                string
 	url                  string
 	validatorQueryClient validatorQuerier
@@ -56,7 +57,7 @@ type cosmosClient struct {
 }
 
 // NewCosmosClient create query client for cosmos app-chains
-func NewCosmosClient(url string, denom string, validatorOperatorAddr string, validatorAddr string, grantWalletAddr ...string) (Client, error) {
+func NewCosmosClient(url string, chain string, denom string, validatorOperatorAddr string, validatorAddr string, grantWalletAddr ...string) (Client, error) {
 	grpcConn, err := grpc.Dial(
 		url,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
@@ -84,6 +85,7 @@ func NewCosmosClient(url string, denom string, validatorOperatorAddr string, val
 
 	return cosmosClient{
 		grpcConn,
+		chain,
 		denom,
 		url,
 		vqc,
@@ -166,9 +168,9 @@ func (c cosmosClient) ValidatorDelegations() (map[string]*big.Int, error) {
 	return validatorDelegations, err
 }
 
-func (c cosmosClient) AddGrantAddresses([]string) {
-
-}
+//func (c cosmosClient) AddGrantAddresses([]string) {
+//
+//}
 
 func (c cosmosClient) ValidatorIncome() (*big.Int, error) {
 	sdr, sdrErr := c.validatorQueryClient.selfDelegationReward()
