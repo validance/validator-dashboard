@@ -23,13 +23,6 @@ type grantCommission struct {
 	commission    *distribution.QueryDelegationRewardsResponse
 }
 
-type CosmosClient interface {
-	ValidatorDelegations() (map[string]*big.Int, error)
-	ValidatorIncome() (*big.Int, error)
-	AddGrantAddresses([]string)
-	GrantRewards() (map[string]*big.Int, error)
-}
-
 type validatorQuerier interface {
 	validatorDelegations(offset uint64, limit uint64) (*staking.QueryValidatorDelegationsResponse, error)
 	selfDelegationReward() (*distribution.QueryDelegationRewardsResponse, error)
@@ -63,7 +56,7 @@ type cosmosClient struct {
 }
 
 // NewCosmosClient create query client for cosmos app-chains
-func NewCosmosClient(url string, denom string, validatorOperatorAddr string, validatorAddr string, grantWalletAddr ...string) (CosmosClient, error) {
+func NewCosmosClient(url string, denom string, validatorOperatorAddr string, validatorAddr string, grantWalletAddr ...string) (Client, error) {
 	grpcConn, err := grpc.Dial(
 		url,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
@@ -139,10 +132,7 @@ func (c cosmosClient) ValidatorDelegations() (map[string]*big.Int, error) {
 	c.appendDelegationResponses(validatorDelegations, res.GetDelegationResponses())
 
 	total := res.GetPagination().GetTotal()
-	fmt.Printf("total: %d\n", total)
-
 	iterate := int(math.Ceil(float64(total / stride)))
-	fmt.Printf("iterate: %d\n", iterate)
 
 	wg.Add(iterate)
 
@@ -157,7 +147,6 @@ func (c cosmosClient) ValidatorDelegations() (map[string]*big.Int, error) {
 
 			if err != nil {
 				fmt.Println(err)
-				return
 			}
 			ch <- vd.GetDelegationResponses()
 		}()
@@ -185,14 +174,12 @@ func (c cosmosClient) ValidatorIncome() (*big.Int, error) {
 	sdr, sdrErr := c.validatorQueryClient.selfDelegationReward()
 
 	if sdrErr != nil {
-		fmt.Println(sdrErr)
 		return nil, sdrErr
 	}
 
 	cm, cmErr := c.validatorQueryClient.commission()
 
 	if cmErr != nil {
-		fmt.Println(cmErr)
 		return nil, cmErr
 	}
 

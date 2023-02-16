@@ -7,7 +7,7 @@ import (
 	"validator-dashboard/app/config"
 )
 
-func New() *sql.DB {
+func New() (*sql.DB, error) {
 	c := config.GetConfig()
 	uri := fmt.Sprintf(
 		"host=%s port=%s user=%s password=%s dbname=%s sslmode=disable connect_timeout=%d",
@@ -19,20 +19,17 @@ func New() *sql.DB {
 		5,
 	)
 
-	db, err := sql.Open("postgres", uri)
+	db, dbOpenErr := sql.Open("postgres", uri)
 
-	if err != nil {
-		fmt.Println(err)
+	if dbOpenErr != nil {
+		return nil, dbOpenErr
 	}
 
-	connErr := db.Ping()
+	dbConnErr := db.Ping()
 
-	if connErr != nil {
-		fmt.Println(connErr)
-		return nil
-	} else {
-		fmt.Println("Database Connected!")
+	if dbConnErr != nil {
+		return nil, dbConnErr
 	}
 
-	return db
+	return db, nil
 }

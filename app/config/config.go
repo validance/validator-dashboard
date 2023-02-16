@@ -10,6 +10,8 @@ var config *Config
 type Config struct {
 	Database Database                  `mapstructure:"database"`
 	Cosmos   map[string]CosmosAppchain `mapstructure:"cosmos"`
+	Aptos    Aptos                     `mapstructure:"aptos"`
+	Polygon  Polygon                   `mapstructure:"polygon"`
 }
 
 type Database struct {
@@ -25,6 +27,14 @@ type CosmosAppchain struct {
 	Denom                 string `mapstructure:"denom"`
 	ValidatorOperatorAddr string `mapstructure:"validatorOperatorAddr"`
 	ValidatorAddr         string `mapstructure:"validatorAddr"`
+}
+
+type Aptos struct {
+	validatorAddr string
+}
+
+type Polygon struct {
+	validatorAddr string
 }
 
 func GetConfig() *Config {

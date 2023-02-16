@@ -17,3 +17,10 @@ cosmos:
       denom: uosmo
       validatorOperatorAddr: osmovaloper18m4wkxw865cmxu7wv43pk9wgssw022kjyxz6wz
       validatorAddr: osmo18m4wkxw865cmxu7wv43pk9wgssw022kj732ee9
+
+aptos:
+  validatorAddr: 0x1
+
+
+polygon:
+  validatorAddr: 0x1
