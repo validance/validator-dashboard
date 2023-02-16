@@ -8,7 +8,8 @@ import (
 var config *Config
 
 type Config struct {
-	Database Database `mapstructure:"database"`
+	Database Database                  `mapstructure:"database"`
+	Cosmos   map[string]CosmosAppchain `mapstructure:"cosmos"`
 }
 
 type Database struct {
@@ -17,6 +18,13 @@ type Database struct {
 	Username string `mapstructure:"username"`
 	Password string `mapstructure:"password"`
 	DbName   string `mapstructure:"dbname"`
+}
+
+type CosmosAppchain struct {
+	GrpcUrl               string `mapstructure:"grpcUrl"`
+	Denom                 string `mapstructure:"denom"`
+	ValidatorOperatorAddr string `mapstructure:"validatorOperatorAddr"`
+	ValidatorAddr         string `mapstructure:"validatorAddr"`
 }
 
 func GetConfig() *Config {
