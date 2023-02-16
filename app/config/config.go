@@ -31,7 +31,7 @@ func newConfig() *Config {
 
 	v := viper.New()
 	v.SetConfigName("config")
-	v.SetConfigType("toml")
+	v.SetConfigType("yaml")
 	v.AddConfigPath(".")
 
 	if err := v.ReadInConfig(); err != nil {

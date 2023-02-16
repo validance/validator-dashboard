@@ -7,24 +7,20 @@ import (
 )
 
 func main() {
-	grantAddrs := []string{"osmo1546y5dd36llwtmyl3pfrxtq7tzys5853543h7r", "osmo1tdcu25km6am5ya6armwne995zarjzzv6g5why0"}
-
-	osmosisClient, err := client.NewCosmosClient("osmosis-grpc.polkachu.com:12590", "osmovaloper18m4wkxw865cmxu7wv43pk9wgssw022kjyxz6wz", "osmo18m4wkxw865cmxu7wv43pk9wgssw022kj732ee9", grantAddrs...)
+	osmosisClient, err := client.NewCosmosClient("localhost:9090", "uatom", "cosmosvaloper1v78emy9d2xe3tj974l7tmn2whca2nh9zp7s0u9", "cosmos1v78emy9d2xe3tj974l7tmn2whca2nh9zy2y6sk")
 
 	if err != nil {
 		panic("failed to initialize client")
 	}
 
-	delegations, err := osmosisClient.ValidatorDelegations()
-	fmt.Print(delegations["osmo18m4wkxw865cmxu7wv43pk9wgssw022kj732ee9"])
+	//delegations, err := osmosisClient.ValidatorDelegations()
+	//fmt.Println(delegations["osmo18m4wkxw865cmxu7wv43pk9wgssw022kj732ee9"])
 
-	//validatorIncome, err := osmosisClient.ValidatorIncome()
-	//fmt.Println(validatorIncome)
+	validatorIncome, err := osmosisClient.ValidatorIncome()
+	fmt.Println(validatorIncome)
 
 	//rewards, err := osmosisClient.GrantRewards()
 	//fmt.Println(rewards)
+	db.New()
 
-	database := db.New()
-
-	fmt.Println(database)
 }

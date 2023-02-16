@@ -1,0 +1,14 @@
+database:
+  host: validator-dashboard.chexhu4rkdnf.ap-northeast-2.rds.amazonaws.com
+  port: 5432
+  username: postgres
+  password: a4xadmin
+  dbname: dashboard
+
+cosmos:
+  - osmosis:
+      grpcUrl: osmosis-grpc.polkachu.com:12590
+      denom: uosmo
+      validatorOperatorAddr: osmovaloper18m4wkxw865cmxu7wv43pk9wgssw022kjyxz6wz
+      validatorAddr: osmo18m4wkxw865cmxu7wv43pk9wgssw022kj732ee9
+  - juno:

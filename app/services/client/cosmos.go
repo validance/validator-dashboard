@@ -15,25 +15,30 @@ import (
 
 const stride = 1000
 
+// coefficient to divide dec coin to normalize into denomination
+var coin_c = big.NewInt(int64(math.Pow10(18)))
+
 type grantCommission struct {
 	delegatorAddr string
 	commission    *distribution.QueryDelegationRewardsResponse
 }
 
-type cosmosQuerier interface {
-	ValidatorDelegations() (map[string]staking.DelegationResponse, error)
+type CosmosClient interface {
+	ValidatorDelegations() (map[string]*big.Int, error)
 	ValidatorIncome() (*big.Int, error)
-	GrantRewards() (map[string]*distribution.QueryDelegationRewardsResponse, error)
+	AddGrantAddresses([]string)
+	GrantRewards() (map[string]*big.Int, error)
 }
 
 type validatorQuerier interface {
-	validatorDelegation(offset uint64, limit uint64) (*staking.QueryValidatorDelegationsResponse, error)
+	validatorDelegations(offset uint64, limit uint64) (*staking.QueryValidatorDelegationsResponse, error)
 	selfDelegationReward() (*distribution.QueryDelegationRewardsResponse, error)
 	commission() (*distribution.QueryValidatorCommissionResponse, error)
 }
 
 type grantQuerier interface {
 	rewards() (map[string]*distribution.QueryDelegationRewardsResponse, error)
+	addGrantAddresses(addresses []string)
 }
 
 type validatorQueryClient struct {
@@ -51,13 +56,14 @@ type grantQueryClient struct {
 
 type cosmosClient struct {
 	grpcConn             *grpc.ClientConn
+	denom                string
 	url                  string
 	validatorQueryClient validatorQuerier
 	grantQueryClient     grantQuerier
 }
 
 // NewCosmosClient create query client for cosmos app-chains
-func NewCosmosClient(url string, validatorOperatorAddr string, validatorAddr string, grantWalletAddr ...string) (cosmosQuerier, error) {
+func NewCosmosClient(url string, denom string, validatorOperatorAddr string, validatorAddr string, grantWalletAddr ...string) (CosmosClient, error) {
 	grpcConn, err := grpc.Dial(
 		url,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
@@ -85,13 +91,14 @@ func NewCosmosClient(url string, validatorOperatorAddr string, validatorAddr str
 
 	return cosmosClient{
 		grpcConn,
+		denom,
 		url,
 		vqc,
 		gqc,
 	}, nil
 }
 
-func (v validatorQueryClient) validatorDelegation(offset uint64, limit uint64) (*staking.QueryValidatorDelegationsResponse, error) {
+func (v validatorQueryClient) validatorDelegations(offset uint64, limit uint64) (*staking.QueryValidatorDelegationsResponse, error) {
 	res, err := v.stakingQueryClient.ValidatorDelegations(
 		context.Background(),
 		&staking.QueryValidatorDelegationsRequest{
@@ -108,18 +115,21 @@ func (v validatorQueryClient) validatorDelegation(offset uint64, limit uint64) (
 	return res, err
 }
 
-func (c cosmosClient) appendDelegationResponses(totalValidatorDelegations map[string]staking.DelegationResponse, validatorDelegations staking.DelegationResponses) {
+// divide by coin coefficient and push the value into map
+func (c cosmosClient) appendDelegationResponses(totalValidatorDelegations map[string]*big.Int, validatorDelegations staking.DelegationResponses) {
 	for _, d := range validatorDelegations {
-		totalValidatorDelegations[d.GetDelegation().DelegatorAddress] = d
+		delegation := d.GetDelegation().GetShares().BigInt()
+		delegation = delegation.Div(delegation, coin_c)
+		totalValidatorDelegations[d.GetDelegation().DelegatorAddress] = delegation
 	}
 }
 
-func (c cosmosClient) ValidatorDelegations() (map[string]staking.DelegationResponse, error) {
-	validatorDelegations := make(map[string]staking.DelegationResponse)
+func (c cosmosClient) ValidatorDelegations() (map[string]*big.Int, error) {
+	validatorDelegations := make(map[string]*big.Int)
 	var wg sync.WaitGroup
 
 	// initial fetch to get total data
-	res, err := c.validatorQueryClient.validatorDelegation(0, stride)
+	res, err := c.validatorQueryClient.validatorDelegations(0, stride)
 
 	if err != nil {
 		fmt.Println(err)
@@ -143,13 +153,12 @@ func (c cosmosClient) ValidatorDelegations() (map[string]staking.DelegationRespo
 		offset := i + 1
 		go func() {
 			defer wg.Done()
-			vd, err := c.validatorQueryClient.validatorDelegation(uint64(offset*stride), stride)
+			vd, err := c.validatorQueryClient.validatorDelegations(uint64(offset*stride), stride)
 
 			if err != nil {
 				fmt.Println(err)
 				return
 			}
-
 			ch <- vd.GetDelegationResponses()
 		}()
 	}
@@ -161,11 +170,15 @@ func (c cosmosClient) ValidatorDelegations() (map[string]staking.DelegationRespo
 	close(ch)
 
 	// pop data from buffered channel
-	for vd := range ch {
-		c.appendDelegationResponses(validatorDelegations, vd)
+	for vds := range ch {
+		c.appendDelegationResponses(validatorDelegations, vds)
 	}
 
 	return validatorDelegations, err
+}
+
+func (c cosmosClient) AddGrantAddresses([]string) {
+
 }
 
 func (c cosmosClient) ValidatorIncome() (*big.Int, error) {
@@ -184,13 +197,31 @@ func (c cosmosClient) ValidatorIncome() (*big.Int, error) {
 	}
 
 	commission := cm.GetCommission()
-	income := commission.GetCommission()[0].Add(sdr.GetRewards()[0])
+	income := commission.GetCommission()[0].Add(sdr.GetRewards()[0]).Amount.BigInt()
+	income = income.Div(income, coin_c)
 
-	return income.Amount.BigInt(), nil
+	return income, nil
 }
 
-func (c cosmosClient) GrantRewards() (map[string]*distribution.QueryDelegationRewardsResponse, error) {
-	return c.grantQueryClient.rewards()
+func (c cosmosClient) GrantRewards() (map[string]*big.Int, error) {
+	res := make(map[string]*big.Int)
+	rewards, err := c.grantQueryClient.rewards()
+
+	if err != nil {
+		return nil, err
+	}
+
+	for address, reward := range rewards {
+		if reward != nil {
+			r := reward.GetRewards().AmountOf(c.denom).BigInt()
+			r = r.Div(r, coin_c)
+			res[address] = r
+		} else {
+			res[address] = big.NewInt(0)
+		}
+	}
+
+	return res, nil
 }
 
 func (v validatorQueryClient) selfDelegationReward() (*distribution.QueryDelegationRewardsResponse, error) {
@@ -225,7 +256,6 @@ func (g grantQueryClient) rewards() (map[string]*distribution.QueryDelegationRew
 		da := da
 		go func() {
 			defer wg.Done()
-			fmt.Println(da)
 			res, err := g.distributionClient.DelegationRewards(context.Background(), &distribution.QueryDelegationRewardsRequest{
 				DelegatorAddress: da,
 				ValidatorAddress: g.validatorOperatorAddr,
@@ -238,7 +268,7 @@ func (g grantQueryClient) rewards() (map[string]*distribution.QueryDelegationRew
 			ch <- &gc
 
 			if err != nil {
-				fmt.Println(err)
+				fmt.Printf("Delegation does not exist on %s\n", da)
 			}
 		}()
 	}
@@ -251,5 +281,10 @@ func (g grantQueryClient) rewards() (map[string]*distribution.QueryDelegationRew
 	}
 
 	return delegationRewards, nil
+}
 
+func (g grantQueryClient) addGrantAddresses(addresses []string) {
+	for _, a := range addresses {
+		g.grantWalletAddr = append(g.grantWalletAddr, a)
+	}
 }
