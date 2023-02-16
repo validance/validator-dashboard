@@ -1,20 +1,22 @@
 package client
 
-import "math/big"
+import (
+	"validator-dashboard/app/models"
+)
 
 type polygonClient struct {
 }
 
-func (a polygonClient) ValidatorDelegations() (map[string]*big.Int, error) {
+func (p polygonClient) ValidatorDelegations() (map[string]*models.Delegation, error) {
 	return nil, nil
 }
-func (a polygonClient) ValidatorIncome() (*big.Int, error) {
+func (p polygonClient) ValidatorIncome() (*models.ValidatorIncome, error) {
 	return nil, nil
 }
-func (a polygonClient) AddGrantAddresses([]string) {
+func (p polygonClient) AddGrantAddresses([]string) {
 
 }
-func (a polygonClient) GrantRewards() (map[string]*big.Int, error) {
+func (p polygonClient) GrantRewards() (map[string]*models.Reward, error) {
 	return nil, nil
 }
 

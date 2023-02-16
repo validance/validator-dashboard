@@ -11,6 +11,7 @@ import (
 	"math"
 	"math/big"
 	"sync"
+	"validator-dashboard/app/models"
 )
 
 const stride = 1000
@@ -27,6 +28,8 @@ type validatorQuerier interface {
 	validatorDelegations(offset uint64, limit uint64) (*staking.QueryValidatorDelegationsResponse, error)
 	selfDelegationReward() (*distribution.QueryDelegationRewardsResponse, error)
 	commission() (*distribution.QueryValidatorCommissionResponse, error)
+	getValidatorAddr() string
+	getOperatorAddr() string
 }
 
 type grantQuerier interface {
@@ -111,16 +114,24 @@ func (v validatorQueryClient) validatorDelegations(offset uint64, limit uint64) 
 }
 
 // divide by coin coefficient and push the value into map
-func (c cosmosClient) appendDelegationResponses(totalValidatorDelegations map[string]*big.Int, validatorDelegations staking.DelegationResponses) {
+func (c cosmosClient) appendDelegationResponses(totalValidatorDelegations map[string]*models.Delegation, validatorDelegations staking.DelegationResponses) {
 	for _, d := range validatorDelegations {
-		delegation := d.GetDelegation().GetShares().BigInt()
-		delegation = delegation.Div(delegation, coin_c)
+		delegationAmount := d.GetDelegation().GetShares().BigInt()
+		delegationAmount = delegationAmount.Div(delegationAmount, coin_c)
+
+		delegation := &models.Delegation{
+			Address:   d.GetDelegation().DelegatorAddress,
+			Validator: d.GetDelegation().ValidatorAddress,
+			Chain:     c.chain,
+			Amount:    delegationAmount,
+		}
+
 		totalValidatorDelegations[d.GetDelegation().DelegatorAddress] = delegation
 	}
 }
 
-func (c cosmosClient) ValidatorDelegations() (map[string]*big.Int, error) {
-	validatorDelegations := make(map[string]*big.Int)
+func (c cosmosClient) ValidatorDelegations() (map[string]*models.Delegation, error) {
+	validatorDelegations := make(map[string]*models.Delegation)
 	var wg sync.WaitGroup
 
 	// initial fetch to get total data
@@ -168,11 +179,11 @@ func (c cosmosClient) ValidatorDelegations() (map[string]*big.Int, error) {
 	return validatorDelegations, err
 }
 
-//func (c cosmosClient) AddGrantAddresses([]string) {
-//
-//}
+func (c cosmosClient) AddGrantAddresses([]string) {
 
-func (c cosmosClient) ValidatorIncome() (*big.Int, error) {
+}
+
+func (c cosmosClient) ValidatorIncome() (*models.ValidatorIncome, error) {
 	sdr, sdrErr := c.validatorQueryClient.selfDelegationReward()
 
 	if sdrErr != nil {
@@ -185,29 +196,45 @@ func (c cosmosClient) ValidatorIncome() (*big.Int, error) {
 		return nil, cmErr
 	}
 
+	reward := sdr.GetRewards().AmountOf(c.denom).BigInt()
+	rewardVal := reward.Div(reward, coin_c)
+
 	commission := cm.GetCommission()
+	commissionVal := commission.GetCommission().AmountOf(c.denom).BigInt()
+	commissionVal = commissionVal.Div(commissionVal, coin_c)
 
-	income := commission.GetCommission().AmountOf(c.denom).Add(sdr.GetRewards().AmountOf(c.denom)).BigInt()
-	income = income.Div(income, coin_c)
+	validatorIncome := &models.ValidatorIncome{
+		Chain:      c.chain,
+		Validator:  c.validatorQueryClient.getValidatorAddr(),
+		Reward:     rewardVal,
+		Commission: commissionVal,
+	}
 
-	return income, nil
+	return validatorIncome, nil
 }
 
-func (c cosmosClient) GrantRewards() (map[string]*big.Int, error) {
-	res := make(map[string]*big.Int)
+func (c cosmosClient) GrantRewards() (map[string]*models.Reward, error) {
+	res := make(map[string]*models.Reward)
 	rewards, err := c.grantQueryClient.rewards()
 
 	if err != nil {
 		return nil, err
 	}
 
+	rewardVal := &models.Reward{
+		Chain:     c.chain,
+		Validator: c.validatorQueryClient.getOperatorAddr(),
+		Value:     big.NewInt(0),
+	}
+
 	for address, reward := range rewards {
 		if reward != nil {
 			r := reward.GetRewards().AmountOf(c.denom).BigInt()
 			r = r.Div(r, coin_c)
-			res[address] = r
+			rewardVal.Value = r
+			res[address] = rewardVal
 		} else {
-			res[address] = big.NewInt(0)
+			res[address] = rewardVal
 		}
 	}
 
@@ -232,6 +259,14 @@ func (v validatorQueryClient) commission() (*distribution.QueryValidatorCommissi
 		})
 
 	return res, err
+}
+
+func (v validatorQueryClient) getValidatorAddr() string {
+	return v.validatorAddr
+}
+
+func (v validatorQueryClient) getOperatorAddr() string {
+	return v.validatorOperatorAddr
 }
 
 // reward of grant wallet address delegated to given validator

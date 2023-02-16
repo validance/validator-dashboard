@@ -2,23 +2,24 @@ package client
 
 import (
 	"fmt"
-	"math/big"
 	"validator-dashboard/app/config"
+	"validator-dashboard/app/models"
 )
 
 type Client interface {
 	// ValidatorDelegations includes validator self-bonded tokens
-	ValidatorDelegations() (map[string]*big.Int, error)
-	ValidatorIncome() (*big.Int, error)
-	//// AddGrantAddresses add address delegated to given validator
-	//AddGrantAddresses([]string)
-	//// GrantRewards get reward per each grant address
-	//GrantRewards() (map[string]*big.Int, error)
+	ValidatorDelegations() (map[string]*models.Delegation, error)
+	ValidatorIncome() (*models.ValidatorIncome, error)
+	// AddGrantAddresses add address delegated to given validator
+	AddGrantAddresses([]string)
+	// GrantRewards get reward per each grant address
+	GrantRewards() (map[string]*models.Reward, error)
 }
 
 func initializeCosmos() ([]Client, error) {
+	var cosmosChains []Client
+
 	cosmosConfig := config.GetConfig().Cosmos
-	cosmosChains := make([]Client, len(cosmosConfig))
 
 	for chain, info := range cosmosConfig {
 		client, err := NewCosmosClient(info.GrpcUrl, chain, info.Denom, info.ValidatorOperatorAddr, info.ValidatorAddr)
@@ -46,7 +47,7 @@ func initializePolygon() (Client, error) {
 }
 
 func Initialize() ([]Client, error) {
-	clients := make([]Client, 1)
+	var clients []Client
 
 	cosmosClients, cosmosErr := initializeCosmos()
 	if cosmosErr != nil {

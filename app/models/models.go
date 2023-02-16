@@ -26,3 +26,9 @@ type ValidatorIncome struct {
 	// commission from non-self delegated token
 	Commission *big.Int
 }
+
+type Reward struct {
+	Chain     string
+	Validator string
+	Value     *big.Int
+}
