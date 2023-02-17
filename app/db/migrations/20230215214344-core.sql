@@ -55,7 +55,24 @@ CREATE INDEX idx_token_price_created_dt ON token_price (create_dt);
 CREATE INDEX idx_token_price_chain_price_created_dt ON token_price (chain, price, create_dt);
 CREATE INDEX idx_token_price_ticker_price_created_dt ON token_price (chain, ticker, create_dt);
 
+CREATE TABLE IF NOT EXISTS grant_reward_history
+(
+    id              SERIAL PRIMARY KEY,
+    grant_address   VARCHAR(256) NOT NULL,
+    validator       VARCHAR(256) NOT NULL,
+    chain           VARCHAR(64)  NOT NULL,
+    reward          VARCHAR(256) NOT NULL,
+    create_dt       TIMESTAMP    NOT NULL DEFAULT current_timestamp
+);
+
+CREATE INDEX idx_grant_reward_history_create_dt ON grant_reward_history (create_dt);
+CREATE INDEX idx_grant_reward_history_grant_address_create_dt ON grant_reward_history (grant_address, create_dt);
+
 -- +migrate Down
+DROP INDEX IF EXISTS idx_grant_reward_history_create_dt;
+DROP INDEX IF EXISTS idx_grant_reward_history_grant_address_create_dt;
+DROP TABLE IF EXISTS grant_reward_history;
+
 DROP INDEX IF EXISTS idx_token_price_created_dt;
 DROP INDEX IF EXISTS idx_token_price_chain_price_created_dt;
 DROP INDEX IF EXISTS idx_token_price_ticker_price_created_dt;

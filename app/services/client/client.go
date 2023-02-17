@@ -11,7 +11,7 @@ type Client interface {
 	ValidatorDelegations() (map[string]*models.Delegation, error)
 	ValidatorIncome() (*models.ValidatorIncome, error)
 	// GrantRewards get reward per each grant address
-	GrantRewards() (map[string]*models.Reward, error)
+	GrantRewards() (map[string]*models.GrantReward, error)
 }
 
 func initializeCosmos() ([]Client, error) {

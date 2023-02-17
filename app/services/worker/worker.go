@@ -1,7 +1,6 @@
 package worker
 
 import (
-	"fmt"
 	"github.com/rs/zerolog/log"
 	"sync"
 	database "validator-dashboard/app/db"
@@ -21,12 +20,12 @@ func (w worker) schedule() {
 	var wg sync.WaitGroup
 
 	// set number of task to be joined by goroutine
-	tasksNum := 1
+	tasksNum := 3
 	wg.Add(len(w.clients) * tasksNum)
 
 	for _, c := range w.clients {
-		//go w.spawnValidatorDelegationTask(&wg, c.ValidatorDelegations)
-		//go w.spawnValidatorIncomeTask(&wg, c.ValidatorIncome)
+		go w.spawnValidatorDelegationTask(&wg, c.ValidatorDelegations)
+		go w.spawnValidatorIncomeTask(&wg, c.ValidatorIncome)
 		go w.spawnGrantIncomeTask(&wg, c.GrantRewards)
 	}
 
@@ -83,6 +82,7 @@ func (w worker) spawnValidatorIncomeTask(wg *sync.WaitGroup, task func() (*model
 		INSERT INTO income_history(address, chain, reward, commission)
 		VALUES ($1, $2, $3, $4)
 	`
+
 	_, exeErr := db.Exec(query, res.Validator, res.Chain, res.Reward.String(), res.Commission.String())
 
 	if exeErr != nil {
@@ -90,7 +90,7 @@ func (w worker) spawnValidatorIncomeTask(wg *sync.WaitGroup, task func() (*model
 	}
 }
 
-func (w worker) spawnGrantIncomeTask(wg *sync.WaitGroup, task func() (map[string]*models.Reward, error)) {
+func (w worker) spawnGrantIncomeTask(wg *sync.WaitGroup, task func() (map[string]*models.GrantReward, error)) {
 	defer wg.Done()
 
 	res, err := task()
@@ -98,8 +98,24 @@ func (w worker) spawnGrantIncomeTask(wg *sync.WaitGroup, task func() (map[string
 		log.Err(err)
 	}
 
-	for delegatorAddr, reward := range res {
-		fmt.Printf("%s: %s\n", delegatorAddr, reward.Value.String())
+	db, dbErr := database.New()
+	if dbErr != nil {
+		log.Err(dbErr)
+		return
+	}
+
+	defer db.Close()
+
+	query := `
+		INSERT INTO grant_reward_history(grant_address, validator, chain, reward)
+		VALUES ($1, $2, $3, $4)
+	`
+
+	for grantAddr, reward := range res {
+		_, exeErr := db.Exec(query, grantAddr, reward.Validator, reward.Chain, reward.Reward.String())
+		if exeErr != nil {
+			log.Err(exeErr)
+		}
 	}
 }
 

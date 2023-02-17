@@ -13,7 +13,7 @@ func (a aptosClient) ValidatorDelegations() (map[string]*models.Delegation, erro
 func (a aptosClient) ValidatorIncome() (*models.ValidatorIncome, error) {
 	return nil, nil
 }
-func (a aptosClient) GrantRewards() (map[string]*models.Reward, error) {
+func (a aptosClient) GrantRewards() (map[string]*models.GrantReward, error) {
 	return nil, nil
 }
 

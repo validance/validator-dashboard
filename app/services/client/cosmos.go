@@ -217,8 +217,8 @@ func (c cosmosClient) ValidatorIncome() (*models.ValidatorIncome, error) {
 	return validatorIncome, nil
 }
 
-func (c cosmosClient) GrantRewards() (map[string]*models.Reward, error) {
-	res := make(map[string]*models.Reward)
+func (c cosmosClient) GrantRewards() (map[string]*models.GrantReward, error) {
+	res := make(map[string]*models.GrantReward)
 	rewards, err := c.grantQueryClient.rewards()
 
 	if err != nil {
@@ -227,16 +227,15 @@ func (c cosmosClient) GrantRewards() (map[string]*models.Reward, error) {
 
 	for delegatorAddr, reward := range rewards {
 		if reward != nil {
-			rewardVal := &models.Reward{
+			rewardVal := &models.GrantReward{
 				Chain:     c.chain,
 				Validator: c.validatorQueryClient.getOperatorAddr(),
-				Value:     big.NewFloat(0),
+				Reward:    big.NewFloat(0),
 			}
-
 			r := reward.GetRewards().AmountOf(c.denom).BigInt()
 			rf := BigIntToFloat(r.Div(r, coin_c))
 			rf = rf.Quo(rf, c.exponent)
-			rewardVal.Value = rf
+			rewardVal.Reward = rf
 
 			res[delegatorAddr] = rewardVal
 		}
@@ -289,10 +288,7 @@ func (g grantQueryClient) rewards() (map[string]*distribution.QueryDelegationRew
 				DelegatorAddress: da,
 				ValidatorAddress: g.validatorOperatorAddr,
 			})
-
-			gc := grantCommission{
-				da, res,
-			}
+			gc := grantCommission{da, res}
 			ch <- &gc
 
 			if err != nil {

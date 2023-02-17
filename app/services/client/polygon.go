@@ -13,7 +13,7 @@ func (p polygonClient) ValidatorDelegations() (map[string]*models.Delegation, er
 func (p polygonClient) ValidatorIncome() (*models.ValidatorIncome, error) {
 	return nil, nil
 }
-func (p polygonClient) GrantRewards() (map[string]*models.Reward, error) {
+func (p polygonClient) GrantRewards() (map[string]*models.GrantReward, error) {
 	return nil, nil
 }
 

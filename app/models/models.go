@@ -27,8 +27,8 @@ type ValidatorIncome struct {
 	Commission *big.Float
 }
 
-type Reward struct {
+type GrantReward struct {
 	Chain     string
 	Validator string
-	Value     *big.Float
+	Reward    *big.Float
 }
