@@ -1,7 +1,7 @@
 package worker
 
 import (
-	"fmt"
+	"github.com/rs/zerolog/log"
 	"sync"
 	database "validator-dashboard/app/db"
 	"validator-dashboard/app/models"
@@ -35,13 +35,13 @@ func (w worker) spawnValidatorDelegationTask(wg *sync.WaitGroup, task func() (ma
 	defer wg.Done()
 	res, err := task()
 	if err != nil {
-		fmt.Println(err)
+		log.Err(err)
 		return
 	}
 
 	db, dbErr := database.New()
 	if dbErr != nil {
-		fmt.Println(dbErr)
+		log.Err(dbErr)
 		return
 	}
 
@@ -55,7 +55,7 @@ func (w worker) spawnValidatorDelegationTask(wg *sync.WaitGroup, task func() (ma
 	for addr, delegation := range res {
 		_, err := db.Exec(query, addr, delegation.Validator, delegation.Chain, delegation.Amount.String())
 		if err != nil {
-			fmt.Println(err)
+			log.Err(err)
 		}
 	}
 }
@@ -65,13 +65,13 @@ func (w worker) spawnValidatorIncomeTask(wg *sync.WaitGroup, task func() (*model
 	res, err := task()
 
 	if err != nil {
-		fmt.Println(err)
+		log.Err(err)
 		return
 	}
 
 	db, dbErr := database.New()
 	if dbErr != nil {
-		fmt.Println(dbErr)
+		log.Err(dbErr)
 		return
 	}
 
@@ -84,12 +84,12 @@ func (w worker) spawnValidatorIncomeTask(wg *sync.WaitGroup, task func() (*model
 	_, exeErr := db.Exec(query, res.Validator, res.Chain, res.Reward.String(), res.Commission.String())
 
 	if exeErr != nil {
-		fmt.Println(exeErr)
+		log.Err(exeErr)
 	}
 }
 
 func RunDbTask() error {
-	fmt.Println("Db task running")
+	log.Info().Msg("DB task running")
 
 	clients, err := client.Initialize()
 	if err != nil {
@@ -99,5 +99,6 @@ func RunDbTask() error {
 	w := spawnWorker(clients)
 	w.schedule()
 
+	log.Info().Msg("DB task end")
 	return nil
 }

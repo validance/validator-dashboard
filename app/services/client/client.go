@@ -1,7 +1,7 @@
 package client
 
 import (
-	"fmt"
+	"github.com/rs/zerolog/log"
 	"validator-dashboard/app/config"
 	"validator-dashboard/app/models"
 )
@@ -27,7 +27,7 @@ func initializeCosmos() ([]Client, error) {
 			return nil, err
 		}
 		if client != nil {
-			fmt.Printf("Initializing %s client\n", chain)
+			log.Info().Msgf("Initializing %s client", chain)
 			cosmosChains = append(cosmosChains, client)
 		}
 	}
@@ -58,17 +58,17 @@ func Initialize() ([]Client, error) {
 
 	cosmosClients, cosmosErr := initializeCosmos()
 	if cosmosErr != nil {
-		fmt.Println(cosmosErr)
+		log.Err(cosmosErr)
 	}
 
 	aptosClient, aptosErr := initializeAptos()
 	if aptosErr != nil {
-		fmt.Println(aptosErr)
+		log.Err(aptosErr)
 	}
 
 	polygonClient, polygonErr := initializePolygon()
 	if polygonErr != nil {
-		fmt.Println(polygonErr)
+		log.Err(polygonErr)
 	}
 
 	for _, c := range cosmosClients {

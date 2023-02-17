@@ -2,10 +2,10 @@ package client
 
 import (
 	"context"
-	"fmt"
 	"github.com/cosmos/cosmos-sdk/types/query"
 	distribution "github.com/cosmos/cosmos-sdk/x/distribution/types"
 	staking "github.com/cosmos/cosmos-sdk/x/staking/types"
+	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"math"
@@ -122,6 +122,10 @@ func (c cosmosClient) appendDelegationResponses(totalValidatorDelegations map[st
 		delegationAmountF := BigIntToFloat(delegationAmount.Div(delegationAmount, coin_c))
 		delegationAmountF = delegationAmountF.Quo(delegationAmountF, c.exponent)
 
+		if FilterLowAmount(delegationAmountF) {
+			continue
+		}
+
 		delegation := &models.Delegation{
 			Address:   d.GetDelegation().DelegatorAddress,
 			Validator: d.GetDelegation().ValidatorAddress,
@@ -141,7 +145,7 @@ func (c cosmosClient) ValidatorDelegations() (map[string]*models.Delegation, err
 	res, err := c.validatorQueryClient.validatorDelegations(0, stride)
 
 	if err != nil {
-		fmt.Println(err)
+		log.Err(err)
 		return nil, err
 	}
 
@@ -162,7 +166,7 @@ func (c cosmosClient) ValidatorDelegations() (map[string]*models.Delegation, err
 			vd, err := c.validatorQueryClient.validatorDelegations(uint64(offset*stride), stride)
 
 			if err != nil {
-				fmt.Println(err)
+				log.Err(err)
 			}
 			ch <- vd.GetDelegationResponses()
 		}()
@@ -299,7 +303,7 @@ func (g grantQueryClient) rewards() (map[string]*distribution.QueryDelegationRew
 			ch <- &gc
 
 			if err != nil {
-				fmt.Printf("Delegation does not exist on %s\n", da)
+				log.Err(err)
 			}
 		}()
 	}

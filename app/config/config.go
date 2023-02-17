@@ -1,7 +1,7 @@
 package config
 
 import (
-	"fmt"
+	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
 )
 
@@ -54,11 +54,11 @@ func newConfig() *Config {
 	v.AddConfigPath(".")
 
 	if err := v.ReadInConfig(); err != nil {
-		fmt.Println("cannot read config file")
+		log.Printf("cannot read config file\n")
 	}
 
 	if err := v.Unmarshal(config); err != nil {
-		fmt.Println("cannot parse config file")
+		log.Printf("cannot parse config file\n")
 	}
 
 	return config
