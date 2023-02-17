@@ -10,8 +10,6 @@ type Client interface {
 	// ValidatorDelegations includes validator self-bonded tokens
 	ValidatorDelegations() (map[string]*models.Delegation, error)
 	ValidatorIncome() (*models.ValidatorIncome, error)
-	// AddGrantAddresses add address delegated to given validator
-	AddGrantAddresses([]string)
 	// GrantRewards get reward per each grant address
 	GrantRewards() (map[string]*models.Reward, error)
 }
@@ -22,7 +20,7 @@ func initializeCosmos() ([]Client, error) {
 	cosmosConfig := config.GetConfig().Cosmos
 
 	for chain, info := range cosmosConfig {
-		client, err := NewCosmosClient(info.GrpcUrl, chain, info.Denom, info.Exponent, info.ValidatorOperatorAddr, info.ValidatorAddr)
+		client, err := NewCosmosClient(info.GrpcUrl, chain, info.Denom, info.Exponent, info.ValidatorOperatorAddr, info.ValidatorAddr, info.GrantAddrs...)
 		if err != nil {
 			return nil, err
 		}

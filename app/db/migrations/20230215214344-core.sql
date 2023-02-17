@@ -19,11 +19,11 @@ CREATE INDEX IF NOT EXISTS idx_delegation_history_address_chain_create_dt ON del
 CREATE TABLE IF NOT EXISTS address_status
 (
     address    VARCHAR(256) PRIMARY KEY,
-    chain      VARCHAR(64)  NOT NULL,
-    label      address_label,
-    status     address_type NOT NULL DEFAULT 'new',
-    create_dt  TIMESTAMP    NOT NULL DEFAULT current_timestamp,
-    updated_dt TIMESTAMP    NOT NULL DEFAULT current_timestamp
+    chain      VARCHAR(64)   NOT NULL,
+    label      address_label NOT NULL DEFAULT 'b2c',
+    status     address_type  NOT NULL DEFAULT 'new',
+    create_dt  TIMESTAMP     NOT NULL DEFAULT current_timestamp,
+    updated_dt TIMESTAMP     NOT NULL DEFAULT current_timestamp
 );
 
 CREATE INDEX IF NOT EXISTS idx_address_status_create_dt ON address_status (create_dt);

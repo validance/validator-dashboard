@@ -12,6 +12,9 @@ cosmos:
       validatorOperatorAddr: junovaloper19cdcyqej774srr90qdyxggdf3hcqzq9mknqutc
       validatorAddr: juno19cdcyqej774srr90qdyxggdf3hcqzq9mfwknsp
       exponent: 6
+      grantAddrs:
+        - juno1s33zct2zhhaf60x4a90cpe9yquw99jj0zen8pt
+        - juno1kq2lsya5sxv4my0xwwed68mkjrsktf7jguslef
 
   - osmosis:
       grpcUrl: osmosis-grpc.polkachu.com:12590

@@ -34,7 +34,6 @@ type validatorQuerier interface {
 
 type grantQuerier interface {
 	rewards() (map[string]*distribution.QueryDelegationRewardsResponse, error)
-	addGrantAddresses(addresses []string)
 }
 
 type validatorQueryClient struct {
@@ -186,10 +185,6 @@ func (c cosmosClient) ValidatorDelegations() (map[string]*models.Delegation, err
 	return validatorDelegations, err
 }
 
-func (c cosmosClient) AddGrantAddresses([]string) {
-
-}
-
 func (c cosmosClient) ValidatorIncome() (*models.ValidatorIncome, error) {
 	sdr, sdrErr := c.validatorQueryClient.selfDelegationReward()
 
@@ -230,21 +225,20 @@ func (c cosmosClient) GrantRewards() (map[string]*models.Reward, error) {
 		return nil, err
 	}
 
-	rewardVal := &models.Reward{
-		Chain:     c.chain,
-		Validator: c.validatorQueryClient.getOperatorAddr(),
-		Value:     big.NewFloat(0),
-	}
-
-	for address, reward := range rewards {
+	for delegatorAddr, reward := range rewards {
 		if reward != nil {
+			rewardVal := &models.Reward{
+				Chain:     c.chain,
+				Validator: c.validatorQueryClient.getOperatorAddr(),
+				Value:     big.NewFloat(0),
+			}
+
 			r := reward.GetRewards().AmountOf(c.denom).BigInt()
 			rf := BigIntToFloat(r.Div(r, coin_c))
 			rf = rf.Quo(rf, c.exponent)
 			rewardVal.Value = rf
-			res[address] = rewardVal
-		} else {
-			res[address] = rewardVal
+
+			res[delegatorAddr] = rewardVal
 		}
 	}
 
@@ -299,7 +293,6 @@ func (g grantQueryClient) rewards() (map[string]*distribution.QueryDelegationRew
 			gc := grantCommission{
 				da, res,
 			}
-
 			ch <- &gc
 
 			if err != nil {
@@ -314,12 +307,5 @@ func (g grantQueryClient) rewards() (map[string]*distribution.QueryDelegationRew
 	for r := range ch {
 		delegationRewards[r.delegatorAddr] = r.commission
 	}
-
 	return delegationRewards, nil
-}
-
-func (g grantQueryClient) addGrantAddresses(addresses []string) {
-	for _, a := range addresses {
-		g.grantWalletAddr = append(g.grantWalletAddr, a)
-	}
 }

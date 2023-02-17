@@ -1,8 +1,13 @@
 package main
 
-import "validator-dashboard/app/services/worker"
+import (
+	"github.com/rs/zerolog/log"
+	"validator-dashboard/app/services/worker"
+)
 
 func main() {
-	worker.RunDbTask()
-
+	dbErr := worker.RunDbTask()
+	if dbErr != nil {
+		log.Err(dbErr)
+	}
 }

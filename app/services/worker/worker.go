@@ -1,6 +1,7 @@
 package worker
 
 import (
+	"fmt"
 	"github.com/rs/zerolog/log"
 	"sync"
 	database "validator-dashboard/app/db"
@@ -20,12 +21,13 @@ func (w worker) schedule() {
 	var wg sync.WaitGroup
 
 	// set number of task to be joined by goroutine
-	tasksNum := 2
+	tasksNum := 1
 	wg.Add(len(w.clients) * tasksNum)
 
 	for _, c := range w.clients {
-		go w.spawnValidatorDelegationTask(&wg, c.ValidatorDelegations)
-		go w.spawnValidatorIncomeTask(&wg, c.ValidatorIncome)
+		//go w.spawnValidatorDelegationTask(&wg, c.ValidatorDelegations)
+		//go w.spawnValidatorIncomeTask(&wg, c.ValidatorIncome)
+		go w.spawnGrantIncomeTask(&wg, c.GrantRewards)
 	}
 
 	wg.Wait()
@@ -85,6 +87,19 @@ func (w worker) spawnValidatorIncomeTask(wg *sync.WaitGroup, task func() (*model
 
 	if exeErr != nil {
 		log.Err(exeErr)
+	}
+}
+
+func (w worker) spawnGrantIncomeTask(wg *sync.WaitGroup, task func() (map[string]*models.Reward, error)) {
+	defer wg.Done()
+
+	res, err := task()
+	if err != nil {
+		log.Err(err)
+	}
+
+	for delegatorAddr, reward := range res {
+		fmt.Printf("%s: %s\n", delegatorAddr, reward.Value.String())
 	}
 }
 

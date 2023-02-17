@@ -23,11 +23,12 @@ type Database struct {
 }
 
 type CosmosAppchain struct {
-	GrpcUrl               string `mapstructure:"grpcUrl"`
-	Denom                 string `mapstructure:"denom"`
-	ValidatorOperatorAddr string `mapstructure:"validatorOperatorAddr"`
-	ValidatorAddr         string `mapstructure:"validatorAddr"`
-	Exponent              int    `mapstructure:"exponent"`
+	GrpcUrl               string   `mapstructure:"grpcUrl"`
+	Denom                 string   `mapstructure:"denom"`
+	ValidatorOperatorAddr string   `mapstructure:"validatorOperatorAddr"`
+	ValidatorAddr         string   `mapstructure:"validatorAddr"`
+	Exponent              int      `mapstructure:"exponent"`
+	GrantAddrs            []string `mapstructure:"grantAddrs"`
 }
 
 type Aptos struct {
