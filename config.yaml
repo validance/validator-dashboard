@@ -11,12 +11,14 @@ cosmos:
       denom: ujuno
       validatorOperatorAddr: junovaloper19cdcyqej774srr90qdyxggdf3hcqzq9mknqutc
       validatorAddr: juno19cdcyqej774srr90qdyxggdf3hcqzq9mfwknsp
+      exponent: 6
 
   - osmosis:
       grpcUrl: osmosis-grpc.polkachu.com:12590
       denom: uosmo
       validatorOperatorAddr: osmovaloper18m4wkxw865cmxu7wv43pk9wgssw022kjyxz6wz
       validatorAddr: osmo18m4wkxw865cmxu7wv43pk9wgssw022kj732ee9
+      exponent: 6
 
 aptos:
   validatorAddr: 0x1

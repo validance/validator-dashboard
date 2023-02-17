@@ -19,11 +19,12 @@ func spawnWorker(clients []client.Client) *worker {
 func (w worker) schedule() {
 	var wg sync.WaitGroup
 
-	tasksNum := 1
+	// set number of task to be joined by goroutine
+	tasksNum := 2
 	wg.Add(len(w.clients) * tasksNum)
 
 	for _, c := range w.clients {
-		//go w.spawnValidatorDelegationTask(&wg, c.ValidatorDelegations)
+		go w.spawnValidatorDelegationTask(&wg, c.ValidatorDelegations)
 		go w.spawnValidatorIncomeTask(&wg, c.ValidatorIncome)
 	}
 
@@ -87,7 +88,9 @@ func (w worker) spawnValidatorIncomeTask(wg *sync.WaitGroup, task func() (*model
 	}
 }
 
-func Run() error {
+func RunDbTask() error {
+	fmt.Println("Db task running")
+
 	clients, err := client.Initialize()
 	if err != nil {
 		return err

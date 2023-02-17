@@ -22,7 +22,7 @@ func initializeCosmos() ([]Client, error) {
 	cosmosConfig := config.GetConfig().Cosmos
 
 	for chain, info := range cosmosConfig {
-		client, err := NewCosmosClient(info.GrpcUrl, chain, info.Denom, info.ValidatorOperatorAddr, info.ValidatorAddr)
+		client, err := NewCosmosClient(info.GrpcUrl, chain, info.Denom, info.Exponent, info.ValidatorOperatorAddr, info.ValidatorAddr)
 		if err != nil {
 			return nil, err
 		}

@@ -15,20 +15,20 @@ type Delegation struct {
 	Address   string
 	Validator string
 	Chain     string
-	Amount    *big.Int
+	Amount    *big.Float
 }
 
 type ValidatorIncome struct {
 	Chain     string
 	Validator string
 	// reward from self delegated token
-	Reward *big.Int
+	Reward *big.Float
 	// commission from non-self delegated token
-	Commission *big.Int
+	Commission *big.Float
 }
 
 type Reward struct {
 	Chain     string
 	Validator string
-	Value     *big.Int
+	Value     *big.Float
 }

@@ -27,6 +27,7 @@ type CosmosAppchain struct {
 	Denom                 string `mapstructure:"denom"`
 	ValidatorOperatorAddr string `mapstructure:"validatorOperatorAddr"`
 	ValidatorAddr         string `mapstructure:"validatorAddr"`
+	Exponent              int    `mapstructure:"exponent"`
 }
 
 type Aptos struct {

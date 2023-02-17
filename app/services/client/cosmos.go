@@ -54,13 +54,14 @@ type cosmosClient struct {
 	grpcConn             *grpc.ClientConn
 	chain                string
 	denom                string
+	exponent             *big.Float
 	url                  string
 	validatorQueryClient validatorQuerier
 	grantQueryClient     grantQuerier
 }
 
 // NewCosmosClient create query client for cosmos app-chains
-func NewCosmosClient(url string, chain string, denom string, validatorOperatorAddr string, validatorAddr string, grantWalletAddr ...string) (Client, error) {
+func NewCosmosClient(url string, chain string, denom string, exponent int, validatorOperatorAddr string, validatorAddr string, grantWalletAddr ...string) (Client, error) {
 	grpcConn, err := grpc.Dial(
 		url,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
@@ -90,6 +91,7 @@ func NewCosmosClient(url string, chain string, denom string, validatorOperatorAd
 		grpcConn,
 		chain,
 		denom,
+		new(big.Float).SetInt(big.NewInt(int64(math.Pow10(exponent)))),
 		url,
 		vqc,
 		gqc,
@@ -117,13 +119,14 @@ func (v validatorQueryClient) validatorDelegations(offset uint64, limit uint64) 
 func (c cosmosClient) appendDelegationResponses(totalValidatorDelegations map[string]*models.Delegation, validatorDelegations staking.DelegationResponses) {
 	for _, d := range validatorDelegations {
 		delegationAmount := d.GetDelegation().GetShares().BigInt()
-		delegationAmount = delegationAmount.Div(delegationAmount, coin_c)
+		delegationAmountF := BigIntToFloat(delegationAmount.Div(delegationAmount, coin_c))
+		delegationAmountF = delegationAmountF.Quo(delegationAmountF, c.exponent)
 
 		delegation := &models.Delegation{
 			Address:   d.GetDelegation().DelegatorAddress,
 			Validator: d.GetDelegation().ValidatorAddress,
 			Chain:     c.chain,
-			Amount:    delegationAmount,
+			Amount:    delegationAmountF,
 		}
 
 		totalValidatorDelegations[d.GetDelegation().DelegatorAddress] = delegation
@@ -197,17 +200,19 @@ func (c cosmosClient) ValidatorIncome() (*models.ValidatorIncome, error) {
 	}
 
 	reward := sdr.GetRewards().AmountOf(c.denom).BigInt()
-	rewardVal := reward.Div(reward, coin_c)
+	rewardValF := BigIntToFloat(reward.Div(reward, coin_c))
+	rewardValF = rewardValF.Quo(rewardValF, c.exponent)
 
 	commission := cm.GetCommission()
 	commissionVal := commission.GetCommission().AmountOf(c.denom).BigInt()
-	commissionVal = commissionVal.Div(commissionVal, coin_c)
+	commissionValF := BigIntToFloat(commissionVal.Div(commissionVal, coin_c))
+	commissionValF = commissionValF.Quo(commissionValF, c.exponent)
 
 	validatorIncome := &models.ValidatorIncome{
 		Chain:      c.chain,
 		Validator:  c.validatorQueryClient.getValidatorAddr(),
-		Reward:     rewardVal,
-		Commission: commissionVal,
+		Reward:     rewardValF,
+		Commission: commissionValF,
 	}
 
 	return validatorIncome, nil
@@ -224,14 +229,15 @@ func (c cosmosClient) GrantRewards() (map[string]*models.Reward, error) {
 	rewardVal := &models.Reward{
 		Chain:     c.chain,
 		Validator: c.validatorQueryClient.getOperatorAddr(),
-		Value:     big.NewInt(0),
+		Value:     big.NewFloat(0),
 	}
 
 	for address, reward := range rewards {
 		if reward != nil {
 			r := reward.GetRewards().AmountOf(c.denom).BigInt()
-			r = r.Div(r, coin_c)
-			rewardVal.Value = r
+			rf := BigIntToFloat(r.Div(r, coin_c))
+			rf = rf.Quo(rf, c.exponent)
+			rewardVal.Value = rf
 			res[address] = rewardVal
 		} else {
 			res[address] = rewardVal
