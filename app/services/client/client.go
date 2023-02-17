@@ -26,8 +26,10 @@ func initializeCosmos() ([]Client, error) {
 		if err != nil {
 			return nil, err
 		}
-		fmt.Printf("Initializing %s client\n", chain)
-		cosmosChains = append(cosmosChains, client)
+		if client != nil {
+			fmt.Printf("Initializing %s client\n", chain)
+			cosmosChains = append(cosmosChains, client)
+		}
 	}
 	return cosmosChains, nil
 }
@@ -36,14 +38,19 @@ func initializeCosmos() ([]Client, error) {
 func initializeAptos() (Client, error) {
 	aptosConfig := config.GetConfig().Aptos
 	_ = aptosConfig
-	return NewAptosClient(), nil
+	_ = NewAptosClient()
+	// TODO: return nil when failed to initialize aptos client
+	return nil, nil
 }
 
 // TODO: initialize polygon client with config
 func initializePolygon() (Client, error) {
 	polygonConfig := config.GetConfig().Polygon
 	_ = polygonConfig
-	return NewPolygonClient(), nil
+	_ = NewPolygonClient()
+	// TODO: return nil when failed to initialize aptos client
+
+	return nil, nil
 }
 
 func Initialize() ([]Client, error) {
@@ -51,25 +58,32 @@ func Initialize() ([]Client, error) {
 
 	cosmosClients, cosmosErr := initializeCosmos()
 	if cosmosErr != nil {
-		return nil, cosmosErr
+		fmt.Println(cosmosErr)
 	}
 
 	aptosClient, aptosErr := initializeAptos()
-	if cosmosErr != nil {
-		return nil, aptosErr
+	if aptosErr != nil {
+		fmt.Println(aptosErr)
 	}
 
 	polygonClient, polygonErr := initializePolygon()
-	if cosmosErr != nil {
-		return nil, polygonErr
+	if polygonErr != nil {
+		fmt.Println(polygonErr)
 	}
 
 	for _, c := range cosmosClients {
-		clients = append(clients, c)
+		if c != nil {
+			clients = append(clients, c)
+		}
 	}
 
-	clients = append(clients, aptosClient)
-	clients = append(clients, polygonClient)
+	if aptosClient != nil {
+		clients = append(clients, aptosClient)
+	}
+
+	if polygonClient != nil {
+		clients = append(clients, polygonClient)
+	}
 
 	return clients, nil
 }

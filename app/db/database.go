@@ -21,14 +21,11 @@ func New() (*sql.DB, error) {
 
 	db, dbOpenErr := sql.Open("postgres", uri)
 
+	db.SetMaxOpenConns(10)
+	db.SetMaxIdleConns(5)
+
 	if dbOpenErr != nil {
 		return nil, dbOpenErr
-	}
-
-	dbConnErr := db.Ping()
-
-	if dbConnErr != nil {
-		return nil, dbConnErr
 	}
 
 	return db, nil
