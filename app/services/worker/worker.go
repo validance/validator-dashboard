@@ -1,6 +1,7 @@
 package worker
 
 import (
+	"database/sql"
 	"github.com/rs/zerolog/log"
 	"sync"
 	database "validator-dashboard/app/db"
@@ -10,10 +11,14 @@ import (
 
 type worker struct {
 	clients []client.Client
+	db      *sql.DB
 }
 
-func spawnWorker(clients []client.Client) *worker {
-	return &worker{clients}
+func spawnWorker(clients []client.Client, db *sql.DB) *worker {
+	return &worker{
+		clients,
+		db,
+	}
 }
 
 func (w worker) schedule() {
@@ -40,21 +45,13 @@ func (w worker) spawnValidatorDelegationTask(wg *sync.WaitGroup, task func() (ma
 		return
 	}
 
-	db, dbErr := database.New()
-	if dbErr != nil {
-		log.Err(dbErr)
-		return
-	}
-
-	defer db.Close()
-
 	query := `
 		INSERT INTO delegation_history(address, validator, chain, amount) 
 		VALUES ($1, $2, $3, $4)
 	`
 
 	for addr, delegation := range res {
-		_, err := db.Exec(query, addr, delegation.Validator, delegation.Chain, delegation.Amount.String())
+		_, err := w.db.Exec(query, addr, delegation.Validator, delegation.Chain, delegation.Amount.String())
 		if err != nil {
 			log.Err(err)
 		}
@@ -70,20 +67,12 @@ func (w worker) spawnValidatorIncomeTask(wg *sync.WaitGroup, task func() (*model
 		return
 	}
 
-	db, dbErr := database.New()
-	if dbErr != nil {
-		log.Err(dbErr)
-		return
-	}
-
-	defer db.Close()
-
 	query := `
 		INSERT INTO income_history(address, chain, reward, commission)
 		VALUES ($1, $2, $3, $4)
 	`
 
-	_, exeErr := db.Exec(query, res.Validator, res.Chain, res.Reward.String(), res.Commission.String())
+	_, exeErr := w.db.Exec(query, res.Validator, res.Chain, res.Reward.String(), res.Commission.String())
 
 	if exeErr != nil {
 		log.Err(exeErr)
@@ -98,21 +87,13 @@ func (w worker) spawnGrantIncomeTask(wg *sync.WaitGroup, task func() (map[string
 		log.Err(err)
 	}
 
-	db, dbErr := database.New()
-	if dbErr != nil {
-		log.Err(dbErr)
-		return
-	}
-
-	defer db.Close()
-
 	query := `
 		INSERT INTO grant_reward_history(grant_address, validator, chain, reward)
 		VALUES ($1, $2, $3, $4)
 	`
 
 	for grantAddr, reward := range res {
-		_, exeErr := db.Exec(query, grantAddr, reward.Validator, reward.Chain, reward.Reward.String())
+		_, exeErr := w.db.Exec(query, grantAddr, reward.Validator, reward.Chain, reward.Reward.String())
 		if exeErr != nil {
 			log.Err(exeErr)
 		}
@@ -127,7 +108,14 @@ func RunDbTask() error {
 		return err
 	}
 
-	w := spawnWorker(clients)
+	db, dbErr := database.New()
+	if dbErr != nil {
+		log.Err(dbErr)
+	}
+
+	defer db.Close()
+
+	w := spawnWorker(clients, db)
 	w.schedule()
 
 	log.Info().Msg("DB task end")

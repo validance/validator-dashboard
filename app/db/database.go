@@ -22,7 +22,7 @@ func New() (*sql.DB, error) {
 	db, dbOpenErr := sql.Open("postgres", uri)
 
 	db.SetMaxOpenConns(10)
-	db.SetMaxIdleConns(5)
+	db.SetMaxIdleConns(10)
 
 	if dbOpenErr != nil {
 		return nil, dbOpenErr
