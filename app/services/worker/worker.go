@@ -1,7 +1,7 @@
 package worker
 
 import (
-	"database/sql"
+	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog/log"
 	"sync"
 	database "validator-dashboard/app/db"
@@ -11,10 +11,10 @@ import (
 
 type worker struct {
 	clients []client.Client
-	db      *sql.DB
+	db      *sqlx.DB
 }
 
-func spawnWorker(clients []client.Client, db *sql.DB) *worker {
+func spawnWorker(clients []client.Client, db *sqlx.DB) *worker {
 	return &worker{
 		clients,
 		db,
@@ -29,15 +29,15 @@ func (w worker) schedule() {
 	wg.Add(len(w.clients) * tasksNum)
 
 	for _, c := range w.clients {
-		go w.spawnValidatorDelegationTask(&wg, c.ValidatorDelegations)
-		go w.spawnValidatorIncomeTask(&wg, c.ValidatorIncome)
-		go w.spawnGrantIncomeTask(&wg, c.GrantRewards)
+		go w.spawnValidatorDelegationHistoryTask(&wg, c.ValidatorDelegations)
+		go w.spawnValidatorIncomeHistoryTask(&wg, c.ValidatorIncome)
+		go w.spawnGrantIncomeHistoryTask(&wg, c.GrantRewards)
 	}
 
 	wg.Wait()
 }
 
-func (w worker) spawnValidatorDelegationTask(wg *sync.WaitGroup, task func() (map[string]*models.Delegation, error)) {
+func (w worker) spawnValidatorDelegationHistoryTask(wg *sync.WaitGroup, task func() (map[string]*models.Delegation, error)) {
 	defer wg.Done()
 	res, err := task()
 	if err != nil {
@@ -52,8 +52,15 @@ func (w worker) spawnValidatorDelegationTask(wg *sync.WaitGroup, task func() (ma
 		VALUES ($1, $2, $3, $4)
 	`
 
+	addrStatusQuery := `
+		INSERT INTO address_status (address, chain)
+		VALUES ($1, $2)
+	`
+
 	for addr, delegation := range res {
 		_, err := w.db.Exec(query, addr, delegation.Validator, delegation.Chain, delegation.Amount.String())
+		_, e := w.db.Exec(addrStatusQuery, addr, delegation.Chain)
+		_ = e
 		if err != nil {
 			log.Err(err)
 		}
@@ -65,7 +72,7 @@ func (w worker) spawnValidatorDelegationTask(wg *sync.WaitGroup, task func() (ma
 	}
 }
 
-func (w worker) spawnValidatorIncomeTask(wg *sync.WaitGroup, task func() (*models.ValidatorIncome, error)) {
+func (w worker) spawnValidatorIncomeHistoryTask(wg *sync.WaitGroup, task func() (*models.ValidatorIncome, error)) {
 	defer wg.Done()
 	res, err := task()
 
@@ -90,7 +97,7 @@ func (w worker) spawnValidatorIncomeTask(wg *sync.WaitGroup, task func() (*model
 	}
 }
 
-func (w worker) spawnGrantIncomeTask(wg *sync.WaitGroup, task func() (map[string]*models.GrantReward, error)) {
+func (w worker) spawnGrantIncomeHistoryTask(wg *sync.WaitGroup, task func() (map[string]*models.GrantReward, error)) {
 	defer wg.Done()
 
 	res, err := task()
@@ -118,7 +125,8 @@ func (w worker) spawnGrantIncomeTask(wg *sync.WaitGroup, task func() (map[string
 	}
 }
 
-func RunDbTask() error {
+// Run query on chain data and insert those in to db
+func Run() error {
 	log.Info().Msg("DB task running")
 
 	clients, err := client.Initialize()
@@ -129,12 +137,16 @@ func RunDbTask() error {
 	db, dbErr := database.New()
 	if dbErr != nil {
 		log.Err(dbErr)
+		return dbErr
 	}
 
 	defer db.Close()
 
 	w := spawnWorker(clients, db)
-	w.schedule()
+	//w.schedule()
+	_ = w
+
+	RunDelegationTask(db)
 
 	log.Info().Msg("DB task end")
 	return nil

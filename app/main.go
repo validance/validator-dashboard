@@ -6,7 +6,7 @@ import (
 )
 
 func main() {
-	dbErr := worker.RunDbTask()
+	dbErr := worker.Run()
 	if dbErr != nil {
 		log.Err(dbErr)
 	}

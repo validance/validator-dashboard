@@ -1,13 +1,13 @@
 package db
 
 import (
-	"database/sql"
 	"fmt"
+	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 	"validator-dashboard/app/config"
 )
 
-func New() (*sql.DB, error) {
+func New() (*sqlx.DB, error) {
 	c := config.GetConfig()
 	uri := fmt.Sprintf(
 		"host=%s port=%s user=%s password=%s dbname=%s sslmode=disable connect_timeout=%d",
@@ -19,7 +19,7 @@ func New() (*sql.DB, error) {
 		5,
 	)
 
-	db, dbOpenErr := sql.Open("postgres", uri)
+	db, dbOpenErr := sqlx.Connect("postgres", uri)
 
 	db.SetMaxOpenConns(10)
 	db.SetMaxIdleConns(10)
