@@ -1,7 +1,6 @@
 package worker
 
 import (
-	"fmt"
 	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog/log"
 )
@@ -14,7 +13,7 @@ func newDelegationTask(db *sqlx.DB) *delegationTask {
 	return &delegationTask{db}
 }
 
-func (d delegationTask) managedChains() []string {
+func (d delegationTask) getManagedChains() []string {
 	var chains []string
 
 	queryErr := d.db.Select(
@@ -41,7 +40,8 @@ func (d delegationTask) getNewDelegators() []string {
 		WHERE NOT EXISTS (
 			SELECT *
 			FROM address_status
-			WHERE address_status.address = delegation_history.address
+			WHERE 
+			    address_status.address = delegation_history.address
 		)
 	`
 
@@ -95,15 +95,13 @@ func (d delegationTask) getReturnedDelegators() []string {
 		log.Err(err)
 	}
 
-	fmt.Println(returnedDelegators)
-
 	return returnedDelegators
 }
 
 func RunDelegationTask(db *sqlx.DB) {
 	task := newDelegationTask(db)
 
-	task.managedChains()
+	task.getManagedChains()
 	task.getNewDelegators()
 	task.getLeftDelegators()
 	task.getReturnedDelegators()
