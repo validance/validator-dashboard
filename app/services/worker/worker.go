@@ -45,6 +45,8 @@ func (w worker) spawnValidatorDelegationTask(wg *sync.WaitGroup, task func() (ma
 		return
 	}
 
+	chain := ""
+
 	query := `
 		INSERT INTO delegation_history(address, validator, chain, amount) 
 		VALUES ($1, $2, $3, $4)
@@ -55,6 +57,11 @@ func (w worker) spawnValidatorDelegationTask(wg *sync.WaitGroup, task func() (ma
 		if err != nil {
 			log.Err(err)
 		}
+		chain = delegation.Chain
+	}
+
+	if chain != "" {
+		log.Info().Msgf("validator delegation task finished: %s", chain)
 	}
 }
 
@@ -77,6 +84,10 @@ func (w worker) spawnValidatorIncomeTask(wg *sync.WaitGroup, task func() (*model
 	if exeErr != nil {
 		log.Err(exeErr)
 	}
+
+	if res.Chain != "" {
+		log.Info().Msgf("validator income task finished: %s", res.Chain)
+	}
 }
 
 func (w worker) spawnGrantIncomeTask(wg *sync.WaitGroup, task func() (map[string]*models.GrantReward, error)) {
@@ -87,6 +98,8 @@ func (w worker) spawnGrantIncomeTask(wg *sync.WaitGroup, task func() (map[string
 		log.Err(err)
 	}
 
+	chain := ""
+
 	query := `
 		INSERT INTO grant_reward_history(grant_address, validator, chain, reward)
 		VALUES ($1, $2, $3, $4)
@@ -94,9 +107,14 @@ func (w worker) spawnGrantIncomeTask(wg *sync.WaitGroup, task func() (map[string
 
 	for grantAddr, reward := range res {
 		_, exeErr := w.db.Exec(query, grantAddr, reward.Validator, reward.Chain, reward.Reward.String())
+		chain = reward.Chain
 		if exeErr != nil {
 			log.Err(exeErr)
 		}
+	}
+
+	if chain != "" {
+		log.Info().Msgf("validator reward task finished: %s", chain)
 	}
 }
 
