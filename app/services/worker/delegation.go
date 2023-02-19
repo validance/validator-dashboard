@@ -1,8 +1,10 @@
 package worker
 
 import (
+	"fmt"
 	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog/log"
+	database "validator-dashboard/app/db"
 )
 
 type delegationTask struct {
@@ -31,18 +33,15 @@ func (d delegationTask) getManagedChains() []string {
 	return chains
 }
 
-func (d delegationTask) getNewDelegators() []string {
-	var newDelegators []string
+func (d delegationTask) getNewDelegators() []database.DelegationHistory {
+	var newDelegators []database.DelegationHistory
 
 	newDelegatorQuery := `
-		SELECT address
-		FROM delegation_history
-		WHERE NOT EXISTS (
-			SELECT *
-			FROM address_status
-			WHERE 
-			    address_status.address = delegation_history.address
-		)
+		SELECT DISTINCT ON (d.address) d.*
+		FROM 
+			delegation_history d LEFT JOIN address_status a
+			ON d.address = a.address
+		WHERE a IS NULL
 	`
 
 	err := d.db.Select(&newDelegators, newDelegatorQuery)
@@ -53,17 +52,24 @@ func (d delegationTask) getNewDelegators() []string {
 	return newDelegators
 }
 
-func (d delegationTask) getLeftDelegators() []string {
-	var leftDelegators []string
+func (d delegationTask) getLeftDelegators() []database.DelegationHistory {
+	var leftDelegators []database.DelegationHistory
 
 	leftDelegatorsQuery := `
-		SELECT address 
-		FROM address_status
-		WHERE NOT EXISTS (
-			SELECT *
-			FROM delegation_history
-			WHERE address_status.address = delegation_history.address
-		)
+		SELECT yesterday.*
+		FROM 
+			(
+				SELECT *
+				FROM delegation_history
+				WHERE DATE(delegation_history.create_dt) = CURRENT_DATE + INTERVAL '-1 DAYS'
+			) yesterday LEFT JOIN
+			(
+				SELECT *
+				FROM delegation_history
+				WHERE DATE(delegation_history.create_dt) = CURRENT_DATE
+			) today
+			ON yesterday.address = today.address
+		WHERE today is NULL
 	`
 
 	err := d.db.Select(&leftDelegators, leftDelegatorsQuery)
@@ -74,20 +80,15 @@ func (d delegationTask) getLeftDelegators() []string {
 	return leftDelegators
 }
 
-func (d delegationTask) getReturnedDelegators() []string {
-	var returnedDelegators []string
+func (d delegationTask) getReturnedDelegators() []database.DelegationHistory {
+	var returnedDelegators []database.DelegationHistory
 
 	returnedDelegatorsQuery := `
-		SELECT address 
-		FROM delegation_history
-		WHERE EXISTS (
-			SELECT *
-			FROM address_status
-			WHERE 
-				address_status.address = delegation_history.address
-				AND
-				address_status.status = 'leave'
-		)
+		SELECT DISTINCT ON (d.address) d.*
+		FROM 
+			delegation_history d LEFT JOIN address_status a
+			ON d.address = a.address
+		WHERE a.status = 'leave'
 	`
 
 	err := d.db.Select(&returnedDelegators, returnedDelegatorsQuery)
@@ -98,12 +99,57 @@ func (d delegationTask) getReturnedDelegators() []string {
 	return returnedDelegators
 }
 
+func (d delegationTask) getDelegationChanged() []database.DelegationChanged {
+	var delegationChanged []database.DelegationChanged
+
+	query := `
+		SELECT 	
+		    today.address, 
+			today.validator, 
+			today.chain, 
+			today.amount as today_amount, 
+			yesterday.amount as yesterday_amount, 
+			ROUND(cast(today.amount as float)::numeric - cast(yesterday.amount as float)::numeric, 5) as difference
+		FROM (
+				SELECT *
+				FROM delegation_history
+				WHERE DATE(delegation_history.create_dt) = CURRENT_DATE
+			) today JOIN
+			(
+				SELECT *
+				FROM delegation_history
+				WHERE DATE(delegation_history.create_dt) = CURRENT_DATE + INTERVAL '-1 DAYS'
+			) yesterday
+		ON 
+			today.address = yesterday.address
+			AND	
+			today.validator = yesterday.validator 
+			AND
+			today.amount != yesterday.amount
+	`
+
+	err := d.db.Select(&delegationChanged, query)
+	if err != nil {
+		log.Err(err)
+	}
+
+	return delegationChanged
+}
+
 func RunDelegationTask(db *sqlx.DB) {
 	task := newDelegationTask(db)
 
-	task.getManagedChains()
-	task.getNewDelegators()
-	task.getLeftDelegators()
-	task.getReturnedDelegators()
+	//fmt.Println(task.getManagedChains())
+	for _, val := range task.getNewDelegators() {
+		fmt.Println(val)
+	}
+	for _, val := range task.getLeftDelegators() {
+		fmt.Println(val)
+	}
+	fmt.Println(task.getReturnedDelegators())
 
+	fmt.Println("delegation changed: ")
+	for _, val := range task.getDelegationChanged() {
+		fmt.Println(val)
+	}
 }

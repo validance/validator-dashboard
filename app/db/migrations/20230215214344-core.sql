@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS delegation_history
 
 CREATE INDEX IF NOT EXISTS idx_delegation_history_address ON delegation_history (address);
 CREATE INDEX IF NOT EXISTS idx_delegation_history_create_dt ON delegation_history (create_dt);
+CREATE INDEX IF NOT EXISTS idx_delegation_history_chain_create_dt ON delegation_history (chain, create_dt);
 CREATE INDEX IF NOT EXISTS idx_delegation_history_address_chain_create_dt ON delegation_history (address, chain, create_dt);
 
 CREATE TABLE IF NOT EXISTS address_status
@@ -57,12 +58,12 @@ CREATE INDEX idx_token_price_ticker_price_created_dt ON token_price (chain, tick
 
 CREATE TABLE IF NOT EXISTS grant_reward_history
 (
-    id              SERIAL PRIMARY KEY,
-    grant_address   VARCHAR(256) NOT NULL,
-    validator       VARCHAR(256) NOT NULL,
-    chain           VARCHAR(64)  NOT NULL,
-    reward          VARCHAR(256) NOT NULL,
-    create_dt       TIMESTAMP    NOT NULL DEFAULT current_timestamp
+    id            SERIAL PRIMARY KEY,
+    grant_address VARCHAR(256) NOT NULL,
+    validator     VARCHAR(256) NOT NULL,
+    chain         VARCHAR(64)  NOT NULL,
+    reward        VARCHAR(256) NOT NULL,
+    create_dt     TIMESTAMP    NOT NULL DEFAULT current_timestamp
 );
 
 CREATE INDEX idx_grant_reward_history_create_dt ON grant_reward_history (create_dt);
@@ -88,6 +89,7 @@ DROP TABLE IF EXISTS address_status;
 
 DROP INDEX IF EXISTS idx_delegation_history_address;
 DROP INDEX IF EXISTS idx_delegation_history_create_dt;
+DROP INDEX IF EXISTS idx_delegation_history_chain_create_dt;
 DROP INDEX IF EXISTS idx_delegation_history_address_chain_create_dt;
 DROP TABLE IF EXISTS delegation_history;
 

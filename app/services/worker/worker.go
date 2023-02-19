@@ -143,8 +143,8 @@ func Run() error {
 	defer db.Close()
 
 	w := spawnWorker(clients, db)
-	//w.schedule()
-	_ = w
+	w.schedule()
+	//_ = w
 
 	RunDelegationTask(db)
 
