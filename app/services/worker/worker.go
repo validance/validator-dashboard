@@ -122,10 +122,7 @@ func (w worker) spawnGrantIncomeHistoryTask(wg *sync.WaitGroup, task func() (map
 func Run() error {
 	log.Info().Msg("DB task running")
 
-	clients, err := client.Initialize()
-	if err != nil {
-		return err
-	}
+	clients := client.Initialize()
 
 	db, dbErr := database.New()
 	if dbErr != nil {
