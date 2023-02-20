@@ -87,7 +87,10 @@ func (d delegationTask) getReturnedDelegators() []database.DelegationHistory {
 		FROM 
 			delegation_history d LEFT JOIN address_status a
 			ON d.address = a.address
-		WHERE a.status = 'leave'
+		WHERE 
+		    a.status = 'leave'
+			AND
+			DATE(d.create_dt) = CURRENT_DATE 
 	`
 
 	err := d.db.Select(&returnedDelegators, returnedDelegatorsQuery)
@@ -166,20 +169,60 @@ func (d delegationTask) updateLeftDelegators(dhs []database.DelegationHistory) {
 	}
 }
 
+func (d delegationTask) updateReturnedDelegators(dhs []database.DelegationHistory) {
+	updateQuery := `
+		UPDATE address_status
+		SET
+		    status = 'return',
+			update_at = CURRENT_TIMESTAMP
+		WHERE address = $1
+	`
+
+	for _, dh := range dhs {
+		_, err := d.db.Exec(updateQuery, dh.Address)
+		if err != nil {
+			log.Err(err).Msg("error on updating returned delegators")
+		}
+	}
+}
+
+func (d delegationTask) updateExistingDelegators(dhs []database.DelegationChanged) {
+	updateQuery := `
+		UPDATE address_status
+		SET
+		    status = 'existing',
+			update_at = CURRENT_TIMESTAMP
+		WHERE
+		    address = $1
+			AND
+		    status = 'new'
+	`
+
+	for _, dh := range dhs {
+		_, err := d.db.Exec(updateQuery, dh.Address)
+		if err != nil {
+			log.Err(err).Msg("error on updating existing delegators")
+		}
+	}
+}
+
 func RunDelegationTask(db *sqlx.DB) {
 	task := newDelegationTask(db)
+
+	fmt.Print("delegation changed: ")
+	changedDelegators := task.getDelegationChanged()
+	task.updateExistingDelegators(changedDelegators)
 
 	newDelegators := task.getNewDelegators()
 	task.createNewDelegators(newDelegators)
 
+	fmt.Print("left delegators:")
 	leftDelegators := task.getLeftDelegators()
 	task.updateLeftDelegators(leftDelegators)
 	fmt.Println(leftDelegators)
 
-	fmt.Println(task.getReturnedDelegators())
-
-	fmt.Println("delegation changed: ")
-	for _, val := range task.getDelegationChanged() {
-		fmt.Println(val)
-	}
+	fmt.Print("returned delegators:")
+	returnDelegators := task.getReturnedDelegators()
+	task.updateReturnedDelegators(returnDelegators)
+	fmt.Println(returnDelegators)
 }
