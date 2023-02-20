@@ -16,12 +16,12 @@ cosmos:
         - juno1s33zct2zhhaf60x4a90cpe9yquw99jj0zen8pt
         - juno1kq2lsya5sxv4my0xwwed68mkjrsktf7jguslef
 
-  - osmosis:
-      grpcUrl: osmosis-grpc.polkachu.com:12590
-      denom: uosmo
-      validatorOperatorAddr: osmovaloper18m4wkxw865cmxu7wv43pk9wgssw022kjyxz6wz
-      validatorAddr: osmo18m4wkxw865cmxu7wv43pk9wgssw022kj732ee9
-      exponent: 6
+#  - osmosis:
+#      grpcUrl: osmosis-grpc.polkachu.com:12590
+#      denom: uosmo
+#      validatorOperatorAddr: osmovaloper18m4wkxw865cmxu7wv43pk9wgssw022kjyxz6wz
+#      validatorAddr: osmo18m4wkxw865cmxu7wv43pk9wgssw022kj732ee9
+#      exponent: 6
 
 aptos:
   validatorAddr: 0x1

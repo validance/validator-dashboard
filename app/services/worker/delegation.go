@@ -48,7 +48,6 @@ func (d delegationTask) getNewDelegators() []database.DelegationHistory {
 	if err != nil {
 		log.Err(err)
 	}
-
 	return newDelegators
 }
 
@@ -136,16 +135,47 @@ func (d delegationTask) getDelegationChanged() []database.DelegationChanged {
 	return delegationChanged
 }
 
+func (d delegationTask) createNewDelegators(dhs []database.DelegationHistory) {
+	createQuery := `
+		INSERT INTO address_status(address, chain)
+		VALUES ($1, $2)
+	`
+
+	for _, dh := range dhs {
+		_, err := d.db.Exec(createQuery, dh.Address, dh.Chain)
+		if err != nil {
+			log.Err(err)
+		}
+	}
+}
+
+func (d delegationTask) updateLeftDelegators(dhs []database.DelegationHistory) {
+	updateQuery := `
+ 		UPDATE address_status
+		SET
+		    status = 'leave',
+			update_dt = CURRENT_TIMESTAMP
+		WHERE address = $1
+	`
+
+	for _, dh := range dhs {
+		_, err := d.db.Exec(updateQuery, dh.Address)
+		if err != nil {
+			log.Err(err)
+		}
+	}
+}
+
 func RunDelegationTask(db *sqlx.DB) {
 	task := newDelegationTask(db)
 
-	//fmt.Println(task.getManagedChains())
-	for _, val := range task.getNewDelegators() {
-		fmt.Println(val)
-	}
-	for _, val := range task.getLeftDelegators() {
-		fmt.Println(val)
-	}
+	newDelegators := task.getNewDelegators()
+	task.createNewDelegators(newDelegators)
+
+	leftDelegators := task.getLeftDelegators()
+	task.updateLeftDelegators(leftDelegators)
+	fmt.Println(leftDelegators)
+
 	fmt.Println(task.getReturnedDelegators())
 
 	fmt.Println("delegation changed: ")

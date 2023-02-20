@@ -52,15 +52,8 @@ func (w worker) spawnValidatorDelegationHistoryTask(wg *sync.WaitGroup, task fun
 		VALUES ($1, $2, $3, $4)
 	`
 
-	addrStatusQuery := `
-		INSERT INTO address_status (address, chain)
-		VALUES ($1, $2)
-	`
-
 	for addr, delegation := range res {
 		_, err := w.db.Exec(query, addr, delegation.Validator, delegation.Chain, delegation.Amount.String())
-		_, e := w.db.Exec(addrStatusQuery, addr, delegation.Chain)
-		_ = e
 		if err != nil {
 			log.Err(err)
 		}
@@ -143,8 +136,8 @@ func Run() error {
 	defer db.Close()
 
 	w := spawnWorker(clients, db)
-	w.schedule()
-	//_ = w
+	//w.schedule()
+	_ = w
 
 	RunDelegationTask(db)
 

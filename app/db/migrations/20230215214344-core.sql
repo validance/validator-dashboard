@@ -19,16 +19,18 @@ CREATE INDEX IF NOT EXISTS idx_delegation_history_address_chain_create_dt ON del
 
 CREATE TABLE IF NOT EXISTS address_status
 (
-    address    VARCHAR(256) PRIMARY KEY,
+    id         SERIAL PRIMARY KEY,
+    address    VARCHAR(256)  NOT NULL,
     chain      VARCHAR(64)   NOT NULL,
     label      address_label NOT NULL DEFAULT 'b2c',
     status     address_type  NOT NULL DEFAULT 'new',
     create_dt  TIMESTAMP     NOT NULL DEFAULT current_timestamp,
-    updated_dt TIMESTAMP     NOT NULL DEFAULT current_timestamp
+    update_dt TIMESTAMP     NOT NULL DEFAULT current_timestamp
 );
 
+CREATE INDEX IF NOT EXISTS idx_address_status_address ON address_status (address);
 CREATE INDEX IF NOT EXISTS idx_address_status_create_dt ON address_status (create_dt);
-CREATE INDEX IF NOT EXISTS idx_address_status_updated_dt ON address_status (updated_dt);
+CREATE INDEX IF NOT EXISTS idx_address_status_update_dt ON address_status (update_dt);
 
 CREATE TABLE IF NOT EXISTS income_history
 (
@@ -84,7 +86,7 @@ DROP INDEX IF EXISTS idx_income_history_address_chain_create_dt;
 DROP TABLE IF EXISTS income_history;
 
 DROP INDEX IF EXISTS idx_address_status_create_dt;
-DROP INDEX IF EXISTS idx_address_status_updated_dt;
+DROP INDEX IF EXISTS idx_address_status_update_dt;
 DROP TABLE IF EXISTS address_status;
 
 DROP INDEX IF EXISTS idx_delegation_history_address;
