@@ -237,4 +237,6 @@ func RunDelegationTask(db *sqlx.DB) {
 		task.updateReturnedDelegators(returnDelegators)
 	}()
 
+	wg.Wait()
+
 }
