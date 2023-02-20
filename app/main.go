@@ -8,6 +8,6 @@ import (
 func main() {
 	dbErr := worker.Run()
 	if dbErr != nil {
-		log.Err(dbErr)
+		log.Err(dbErr).Msg("failed to run db tasks")
 	}
 }

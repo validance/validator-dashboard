@@ -51,22 +51,22 @@ func initializePolygon() (Client, error) {
 	return nil, nil
 }
 
-func Initialize() ([]Client, error) {
+func Initialize() []Client {
 	var clients []Client
 
 	cosmosClients, cosmosErr := initializeCosmos()
 	if cosmosErr != nil {
-		log.Err(cosmosErr)
+		log.Err(cosmosErr).Msg("failed to initialize cosmos clients")
 	}
 
 	aptosClient, aptosErr := initializeAptos()
 	if aptosErr != nil {
-		log.Err(aptosErr)
+		log.Err(aptosErr).Msg("failed to initialize aptos client")
 	}
 
 	polygonClient, polygonErr := initializePolygon()
 	if polygonErr != nil {
-		log.Err(polygonErr)
+		log.Err(polygonErr).Msg("failed to initialize polygon client")
 	}
 
 	for _, c := range cosmosClients {
@@ -83,5 +83,5 @@ func Initialize() ([]Client, error) {
 		clients = append(clients, polygonClient)
 	}
 
-	return clients, nil
+	return clients
 }

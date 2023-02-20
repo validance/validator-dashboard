@@ -144,7 +144,7 @@ func (c cosmosClient) ValidatorDelegations() (map[string]*models.Delegation, err
 	res, err := c.validatorQueryClient.validatorDelegations(0, stride)
 
 	if err != nil {
-		log.Err(err)
+		log.Err(err).Msg("failed to get cosmos validator delegations")
 		return nil, err
 	}
 
@@ -165,7 +165,7 @@ func (c cosmosClient) ValidatorDelegations() (map[string]*models.Delegation, err
 			vd, err := c.validatorQueryClient.validatorDelegations(uint64(offset*stride), stride)
 
 			if err != nil {
-				log.Err(err)
+				log.Err(err).Msg("failed to get cosmos validator delegations")
 			}
 			ch <- vd.GetDelegationResponses()
 		}()
@@ -292,7 +292,7 @@ func (g grantQueryClient) rewards() (map[string]*distribution.QueryDelegationRew
 			ch <- &gc
 
 			if err != nil {
-				log.Err(err)
+				log.Err(err).Msg("failed to get cosmos grant rewards")
 			}
 		}()
 	}

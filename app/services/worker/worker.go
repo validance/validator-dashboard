@@ -41,7 +41,7 @@ func (w worker) spawnValidatorDelegationHistoryTask(wg *sync.WaitGroup, task fun
 	defer wg.Done()
 	res, err := task()
 	if err != nil {
-		log.Err(err)
+		log.Err(err).Msg("failed to spawn validator delegation history task")
 		return
 	}
 
@@ -55,7 +55,7 @@ func (w worker) spawnValidatorDelegationHistoryTask(wg *sync.WaitGroup, task fun
 	for addr, delegation := range res {
 		_, err := w.db.Exec(query, addr, delegation.Validator, delegation.Chain, delegation.Amount.String())
 		if err != nil {
-			log.Err(err)
+			log.Err(err).Msg("failed to insert delegation history")
 		}
 		chain = delegation.Chain
 	}
@@ -70,7 +70,7 @@ func (w worker) spawnValidatorIncomeHistoryTask(wg *sync.WaitGroup, task func() 
 	res, err := task()
 
 	if err != nil {
-		log.Err(err)
+		log.Err(err).Msg("failed to spawn validator income history task")
 		return
 	}
 
@@ -82,7 +82,7 @@ func (w worker) spawnValidatorIncomeHistoryTask(wg *sync.WaitGroup, task func() 
 	_, exeErr := w.db.Exec(query, res.Validator, res.Chain, res.Reward.String(), res.Commission.String())
 
 	if exeErr != nil {
-		log.Err(exeErr)
+		log.Err(exeErr).Msg("failed to create validtor income history")
 	}
 
 	if res.Chain != "" {
@@ -95,7 +95,7 @@ func (w worker) spawnGrantIncomeHistoryTask(wg *sync.WaitGroup, task func() (map
 
 	res, err := task()
 	if err != nil {
-		log.Err(err)
+		log.Err(err).Msg("failed to spawn grant income history task")
 	}
 
 	chain := ""
@@ -109,7 +109,7 @@ func (w worker) spawnGrantIncomeHistoryTask(wg *sync.WaitGroup, task func() (map
 		_, exeErr := w.db.Exec(query, grantAddr, reward.Validator, reward.Chain, reward.Reward.String())
 		chain = reward.Chain
 		if exeErr != nil {
-			log.Err(exeErr)
+			log.Err(exeErr).Msg("failed to create grant income history")
 		}
 	}
 
@@ -129,15 +129,14 @@ func Run() error {
 
 	db, dbErr := database.New()
 	if dbErr != nil {
-		log.Err(dbErr)
+		log.Err(dbErr).Msg("failed to initialize database")
 		return dbErr
 	}
 
 	defer db.Close()
 
 	w := spawnWorker(clients, db)
-	//w.schedule()
-	_ = w
+	w.schedule()
 
 	RunDelegationTask(db)
 

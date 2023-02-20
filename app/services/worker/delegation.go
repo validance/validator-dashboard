@@ -1,9 +1,9 @@
 package worker
 
 import (
-	"fmt"
 	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog/log"
+	"sync"
 	database "validator-dashboard/app/db"
 )
 
@@ -27,7 +27,7 @@ func (d delegationTask) getManagedChains() []string {
 	)
 
 	if queryErr != nil {
-		log.Err(queryErr)
+		log.Err(queryErr).Msg("failed to get managed chains")
 	}
 
 	return chains
@@ -46,7 +46,7 @@ func (d delegationTask) getNewDelegators() []database.DelegationHistory {
 
 	err := d.db.Select(&newDelegators, newDelegatorQuery)
 	if err != nil {
-		log.Err(err)
+		log.Err(err).Msg("failed to get new delegators")
 	}
 	return newDelegators
 }
@@ -73,7 +73,7 @@ func (d delegationTask) getLeftDelegators() []database.DelegationHistory {
 
 	err := d.db.Select(&leftDelegators, leftDelegatorsQuery)
 	if err != nil {
-		log.Err(err)
+		log.Err(err).Msg("failed to get left delegators")
 	}
 
 	return leftDelegators
@@ -95,7 +95,7 @@ func (d delegationTask) getReturnedDelegators() []database.DelegationHistory {
 
 	err := d.db.Select(&returnedDelegators, returnedDelegatorsQuery)
 	if err != nil {
-		log.Err(err)
+		log.Err(err).Msg("failed to get returned delegators")
 	}
 
 	return returnedDelegators
@@ -132,7 +132,7 @@ func (d delegationTask) getDelegationChanged() []database.DelegationChanged {
 
 	err := d.db.Select(&delegationChanged, query)
 	if err != nil {
-		log.Err(err)
+		log.Err(err).Msg("failed to get delegation changed")
 	}
 
 	return delegationChanged
@@ -147,7 +147,7 @@ func (d delegationTask) createNewDelegators(dhs []database.DelegationHistory) {
 	for _, dh := range dhs {
 		_, err := d.db.Exec(createQuery, dh.Address, dh.Chain)
 		if err != nil {
-			log.Err(err)
+			log.Err(err).Msg("failed to create new delegator status")
 		}
 	}
 }
@@ -164,7 +164,7 @@ func (d delegationTask) updateLeftDelegators(dhs []database.DelegationHistory) {
 	for _, dh := range dhs {
 		_, err := d.db.Exec(updateQuery, dh.Address)
 		if err != nil {
-			log.Err(err)
+			log.Err(err).Msg("failed to update left delegators")
 		}
 	}
 }
@@ -208,21 +208,33 @@ func (d delegationTask) updateExistingDelegators(dhs []database.DelegationChange
 
 func RunDelegationTask(db *sqlx.DB) {
 	task := newDelegationTask(db)
+	tasksNum := 4
+	var wg sync.WaitGroup
 
-	fmt.Print("delegation changed: ")
-	changedDelegators := task.getDelegationChanged()
-	task.updateExistingDelegators(changedDelegators)
+	wg.Add(tasksNum)
 
-	newDelegators := task.getNewDelegators()
-	task.createNewDelegators(newDelegators)
+	go func() {
+		defer wg.Done()
+		changedDelegators := task.getDelegationChanged()
+		task.updateExistingDelegators(changedDelegators)
+	}()
 
-	fmt.Print("left delegators:")
-	leftDelegators := task.getLeftDelegators()
-	task.updateLeftDelegators(leftDelegators)
-	fmt.Println(leftDelegators)
+	go func() {
+		defer wg.Done()
+		newDelegators := task.getNewDelegators()
+		task.createNewDelegators(newDelegators)
+	}()
 
-	fmt.Print("returned delegators:")
-	returnDelegators := task.getReturnedDelegators()
-	task.updateReturnedDelegators(returnDelegators)
-	fmt.Println(returnDelegators)
+	go func() {
+		defer wg.Done()
+		leftDelegators := task.getLeftDelegators()
+		task.updateLeftDelegators(leftDelegators)
+	}()
+
+	go func() {
+		defer wg.Done()
+		returnDelegators := task.getReturnedDelegators()
+		task.updateReturnedDelegators(returnDelegators)
+	}()
+
 }
