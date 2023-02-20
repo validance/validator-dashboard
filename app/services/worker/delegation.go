@@ -7,15 +7,26 @@ import (
 	database "validator-dashboard/app/db"
 )
 
-type delegationTask struct {
-	db *sqlx.DB
+type DelegationTask struct {
+	db                 *sqlx.DB
+	delegationChanged  []database.DelegationChanged
+	newDelegators      []database.DelegationHistory
+	leftDelegators     []database.DelegationHistory
+	returnedDelegators []database.DelegationHistory
 }
 
-func newDelegationTask(db *sqlx.DB) *delegationTask {
-	return &delegationTask{db}
+func NewDelegationTask(db *sqlx.DB) *DelegationTask {
+
+	return &DelegationTask{
+		db,
+		nil,
+		nil,
+		nil,
+		nil,
+	}
 }
 
-func (d delegationTask) getManagedChains() []string {
+func (d *DelegationTask) getManagedChains() []string {
 	var chains []string
 
 	queryErr := d.db.Select(
@@ -33,7 +44,7 @@ func (d delegationTask) getManagedChains() []string {
 	return chains
 }
 
-func (d delegationTask) getNewDelegators() []database.DelegationHistory {
+func (d *DelegationTask) getNewDelegators() []database.DelegationHistory {
 	var newDelegators []database.DelegationHistory
 
 	newDelegatorQuery := `
@@ -51,7 +62,7 @@ func (d delegationTask) getNewDelegators() []database.DelegationHistory {
 	return newDelegators
 }
 
-func (d delegationTask) getLeftDelegators() []database.DelegationHistory {
+func (d *DelegationTask) getLeftDelegators() []database.DelegationHistory {
 	var leftDelegators []database.DelegationHistory
 
 	leftDelegatorsQuery := `
@@ -79,7 +90,7 @@ func (d delegationTask) getLeftDelegators() []database.DelegationHistory {
 	return leftDelegators
 }
 
-func (d delegationTask) getReturnedDelegators() []database.DelegationHistory {
+func (d *DelegationTask) getReturnedDelegators() []database.DelegationHistory {
 	var returnedDelegators []database.DelegationHistory
 
 	returnedDelegatorsQuery := `
@@ -101,7 +112,7 @@ func (d delegationTask) getReturnedDelegators() []database.DelegationHistory {
 	return returnedDelegators
 }
 
-func (d delegationTask) getDelegationChanged() []database.DelegationChanged {
+func (d *DelegationTask) getDelegationChanged() []database.DelegationChanged {
 	var delegationChanged []database.DelegationChanged
 
 	query := `
@@ -138,7 +149,7 @@ func (d delegationTask) getDelegationChanged() []database.DelegationChanged {
 	return delegationChanged
 }
 
-func (d delegationTask) createNewDelegators(dhs []database.DelegationHistory) {
+func (d *DelegationTask) createNewDelegators(dhs []database.DelegationHistory) {
 	createQuery := `
 		INSERT INTO address_status(address, chain)
 		VALUES ($1, $2)
@@ -152,7 +163,7 @@ func (d delegationTask) createNewDelegators(dhs []database.DelegationHistory) {
 	}
 }
 
-func (d delegationTask) updateLeftDelegators(dhs []database.DelegationHistory) {
+func (d *DelegationTask) updateLeftDelegators(dhs []database.DelegationHistory) {
 	updateQuery := `
  		UPDATE address_status
 		SET
@@ -169,12 +180,12 @@ func (d delegationTask) updateLeftDelegators(dhs []database.DelegationHistory) {
 	}
 }
 
-func (d delegationTask) updateReturnedDelegators(dhs []database.DelegationHistory) {
+func (d *DelegationTask) updateReturnedDelegators(dhs []database.DelegationHistory) {
 	updateQuery := `
 		UPDATE address_status
 		SET
 		    status = 'return',
-			update_at = CURRENT_TIMESTAMP
+			update_dt = CURRENT_TIMESTAMP
 		WHERE address = $1
 	`
 
@@ -186,28 +197,23 @@ func (d delegationTask) updateReturnedDelegators(dhs []database.DelegationHistor
 	}
 }
 
-func (d delegationTask) updateExistingDelegators(dhs []database.DelegationChanged) {
+func (d *DelegationTask) updateExistingDelegators() {
 	updateQuery := `
 		UPDATE address_status
 		SET
 		    status = 'existing',
-			update_at = CURRENT_TIMESTAMP
+			update_dt = CURRENT_TIMESTAMP
 		WHERE
-		    address = $1
-			AND
 		    status = 'new'
 	`
 
-	for _, dh := range dhs {
-		_, err := d.db.Exec(updateQuery, dh.Address)
-		if err != nil {
-			log.Err(err).Msg("error on updating existing delegators")
-		}
+	_, err := d.db.Exec(updateQuery)
+	if err != nil {
+		log.Err(err).Msg("error on updating existing delegators")
 	}
 }
 
-func RunDelegationTask(db *sqlx.DB) {
-	task := newDelegationTask(db)
+func (d *DelegationTask) RunDelegationTask() {
 	tasksNum := 4
 	var wg sync.WaitGroup
 
@@ -215,28 +221,31 @@ func RunDelegationTask(db *sqlx.DB) {
 
 	go func() {
 		defer wg.Done()
-		changedDelegators := task.getDelegationChanged()
-		task.updateExistingDelegators(changedDelegators)
+		changedDelegators := d.getDelegationChanged()
+		d.delegationChanged = changedDelegators
+		d.updateExistingDelegators()
 	}()
 
 	go func() {
 		defer wg.Done()
-		newDelegators := task.getNewDelegators()
-		task.createNewDelegators(newDelegators)
+		newDelegators := d.getNewDelegators()
+		d.newDelegators = newDelegators
+		d.createNewDelegators(newDelegators)
 	}()
 
 	go func() {
 		defer wg.Done()
-		leftDelegators := task.getLeftDelegators()
-		task.updateLeftDelegators(leftDelegators)
+		leftDelegators := d.getLeftDelegators()
+		d.leftDelegators = leftDelegators
+		d.updateLeftDelegators(leftDelegators)
 	}()
 
 	go func() {
 		defer wg.Done()
-		returnDelegators := task.getReturnedDelegators()
-		task.updateReturnedDelegators(returnDelegators)
+		returnDelegators := d.getReturnedDelegators()
+		d.returnedDelegators = returnDelegators
+		d.updateReturnedDelegators(returnDelegators)
 	}()
 
 	wg.Wait()
-
 }

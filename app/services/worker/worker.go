@@ -1,6 +1,7 @@
 package worker
 
 import (
+	"fmt"
 	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog/log"
 	"sync"
@@ -120,7 +121,7 @@ func (w worker) spawnGrantIncomeHistoryTask(wg *sync.WaitGroup, task func() (map
 
 // Run query on chain data and insert those in to db
 func Run() error {
-	log.Info().Msg("DB task running")
+	log.Info().Msg("Delegation task running")
 
 	clients := client.Initialize()
 
@@ -133,10 +134,16 @@ func Run() error {
 	defer db.Close()
 
 	w := spawnWorker(clients, db)
-	w.schedule()
+	_ = w
+	//w.schedule()
 
-	RunDelegationTask(db)
+	dt := NewDelegationTask(db)
+	dt.RunDelegationTask()
 
-	log.Info().Msg("DB task end")
+	log.Info().Msg("Delegation task end")
+
+	sm := NewSummaryWorker(dt)
+	fmt.Println(sm.getAddressStatus("juno1cay2udnvc6gxdll68rut62vns5ds76d0lx8eup"))
+
 	return nil
 }
