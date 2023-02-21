@@ -149,6 +149,7 @@ func job() {
 }
 
 func Cron() {
-	gocron.Every(1).Day().At("13:46:00").Do(run)
+	err := gocron.Every(1).Day().At("13:46:00").Do(run)
+	log.Err(err).Msg("error on scheduling cron task")
 	go job()
 }
