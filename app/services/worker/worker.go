@@ -1,13 +1,14 @@
 package worker
 
 import (
-	"github.com/jasonlvhit/gocron"
-	"github.com/jmoiron/sqlx"
-	"github.com/rs/zerolog/log"
 	"sync"
 	database "validator-dashboard/app/db"
 	"validator-dashboard/app/models"
 	"validator-dashboard/app/services/client"
+
+	"github.com/jasonlvhit/gocron"
+	"github.com/jmoiron/sqlx"
+	"github.com/rs/zerolog/log"
 )
 
 type worker struct {
