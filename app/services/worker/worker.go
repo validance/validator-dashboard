@@ -1,7 +1,7 @@
 package worker
 
 import (
-	"fmt"
+	"github.com/jasonlvhit/gocron"
 	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog/log"
 	"sync"
@@ -119,8 +119,8 @@ func (w worker) spawnGrantIncomeHistoryTask(wg *sync.WaitGroup, task func() (map
 	}
 }
 
-// Run query on chain data and insert those in to db
-func Run() error {
+// query on chain data and insert those in to db
+func run() error {
 	log.Info().Msg("Delegation task running")
 
 	clients := client.Initialize()
@@ -134,16 +134,21 @@ func Run() error {
 	defer db.Close()
 
 	w := spawnWorker(clients, db)
-	_ = w
-	//w.schedule()
+	w.schedule()
 
 	dt := NewDelegationTask(db)
 	dt.RunDelegationTask()
 
 	log.Info().Msg("Delegation task end")
 
-	sm := NewSummaryWorker(dt)
-	fmt.Println(sm.getAddressStatus("juno1cay2udnvc6gxdll68rut62vns5ds76d0lx8eup"))
-
 	return nil
+}
+
+func job() {
+	<-gocron.Start()
+}
+
+func Cron() {
+	gocron.Every(1).Day().At("13:46:00").Do(run)
+	go job()
 }
