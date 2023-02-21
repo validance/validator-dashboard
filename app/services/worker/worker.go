@@ -2,12 +2,13 @@ package worker
 
 import (
 	"fmt"
-	"github.com/jmoiron/sqlx"
-	"github.com/rs/zerolog/log"
 	"sync"
 	database "validator-dashboard/app/db"
 	"validator-dashboard/app/models"
 	"validator-dashboard/app/services/client"
+
+	"github.com/jmoiron/sqlx"
+	"github.com/rs/zerolog/log"
 )
 
 type worker struct {
@@ -141,6 +142,11 @@ func Run() error {
 	dt.RunDelegationTask()
 
 	log.Info().Msg("Delegation task end")
+
+	tp := NewTokenPriceTask(db)
+	tp.RunTokenPriceTask()
+
+	log.Info().Msg("TokenPrice task end")
 
 	sm := NewSummaryWorker(dt)
 	fmt.Println(sm.getAddressStatus("juno1cay2udnvc6gxdll68rut62vns5ds76d0lx8eup"))

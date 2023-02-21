@@ -29,3 +29,11 @@ type AddressStatus struct {
 	CreatedDt time.Time `db:"create_dt"`
 	UpdateDt  time.Time `db:"update_dt"`
 }
+
+type TokenPrice struct {
+	Id        int       `db:"id"`
+	Chain     string    `db:"chain"`
+	Ticker    string    `db:"ticker"`
+	Price     float64   `db:"price"`
+	CreatedDt time.Time `db:"create_dt"`
+}
