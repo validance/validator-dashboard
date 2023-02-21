@@ -1,13 +1,16 @@
 package main
 
 import (
-	"github.com/rs/zerolog/log"
+	"fmt"
+	"validator-dashboard/app/config"
+	"validator-dashboard/app/server"
 	"validator-dashboard/app/services/worker"
 )
 
 func main() {
-	dbErr := worker.Run()
-	if dbErr != nil {
-		log.Err(dbErr).Msg("failed to run db tasks")
-	}
+	c := config.GetConfig()
+	worker.RegisterCron(c.App.Cron)
+
+	app := server.NewApp()
+	app.Run(fmt.Sprintf("%s:%s", c.App.Host, c.App.Port))
 }

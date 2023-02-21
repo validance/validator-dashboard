@@ -8,10 +8,17 @@ import (
 var config *Config
 
 type Config struct {
+	App      App                       `mapstructure:"app"`
 	Database Database                  `mapstructure:"database"`
 	Cosmos   map[string]CosmosAppchain `mapstructure:"cosmos"`
 	Aptos    Aptos                     `mapstructure:"aptos"`
 	Polygon  Polygon                   `mapstructure:"polygon"`
+}
+
+type App struct {
+	Host string `mapstructure:"host"`
+	Port string `mapstructure:"port"`
+	Cron string `mapstructure:"cron"`
 }
 
 type Database struct {
