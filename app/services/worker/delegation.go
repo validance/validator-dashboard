@@ -15,8 +15,7 @@ type DelegationTask struct {
 	returnedDelegators []database.DelegationHistory
 }
 
-func NewDelegationTask(db *sqlx.DB) *DelegationTask {
-
+func NewDelegationStatusTask(db *sqlx.DB) *DelegationTask {
 	return &DelegationTask{
 		db,
 		nil,
@@ -213,7 +212,7 @@ func (d *DelegationTask) updateExistingDelegators() {
 	}
 }
 
-func (d *DelegationTask) RunDelegationTask() {
+func (d *DelegationTask) RunDelegationStatusTask() {
 	tasksNum := 4
 	var wg sync.WaitGroup
 

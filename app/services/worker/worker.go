@@ -15,14 +15,14 @@ type worker struct {
 	db      *sqlx.DB
 }
 
-func spawnWorker(clients []client.Client, db *sqlx.DB) *worker {
+func spawnHistoryWorker(clients []client.Client, db *sqlx.DB) *worker {
 	return &worker{
 		clients,
 		db,
 	}
 }
 
-func (w worker) schedule() {
+func (w worker) RunHistoryWorker() {
 	var wg sync.WaitGroup
 
 	// set number of task to be joined by goroutine
@@ -121,8 +121,6 @@ func (w worker) spawnGrantIncomeHistoryTask(wg *sync.WaitGroup, task func() (map
 
 // query on chain data and insert those in to db
 func run() error {
-	log.Info().Msg("Delegation task running")
-
 	clients := client.Initialize()
 
 	db, dbErr := database.New()
@@ -133,23 +131,31 @@ func run() error {
 
 	defer db.Close()
 
-	w := spawnWorker(clients, db)
-	w.schedule()
+	// pipelining tasks
 
-	dt := NewDelegationTask(db)
-	dt.RunDelegationTask()
+	log.Info().Msg("History task running")
+	hw := spawnHistoryWorker(clients, db)
+	hw.RunHistoryWorker()
+	log.Info().Msg("History task end")
 
-	log.Info().Msg("Delegation task end")
+	log.Info().Msg("Delegation status task running")
+	dt := NewDelegationStatusTask(db)
+	dt.RunDelegationStatusTask()
+	log.Info().Msg("Delegation status task end")
+
+	log.Info().Msg("Summary task running")
+	sw := NewSummaryWorker(dt)
+	sw.RunSummaryWorker()
+	log.Info().Msg("Summary task end")
 
 	return nil
 }
 
-func job() {
+func runJob() {
 	<-gocron.Start()
 }
 
-func Cron() {
-	err := gocron.Every(1).Day().At("13:46:00").Do(run)
-	log.Err(err).Msg("error on scheduling cron task")
-	go job()
+func RegisterCron(t string) {
+	gocron.Every(1).Day().At(t).Do(run)
+	go runJob()
 }
