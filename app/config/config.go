@@ -32,6 +32,7 @@ type Database struct {
 type CosmosAppchain struct {
 	GrpcUrl               string   `mapstructure:"grpcUrl"`
 	Denom                 string   `mapstructure:"denom"`
+	CoingeckoId           string   `mapstructure:"coingeckoId"`
 	ValidatorOperatorAddr string   `mapstructure:"validatorOperatorAddr"`
 	ValidatorAddr         string   `mapstructure:"validatorAddr"`
 	Exponent              int      `mapstructure:"exponent"`

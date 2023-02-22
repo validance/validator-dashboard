@@ -14,6 +14,7 @@ cosmos:
   - juno:
       grpcUrl: juno-grpc.polkachu.com:12690
       denom: ujuno
+      coingeckoId: juno-network
       validatorOperatorAddr: junovaloper19cdcyqej774srr90qdyxggdf3hcqzq9mknqutc
       validatorAddr: juno19cdcyqej774srr90qdyxggdf3hcqzq9mfwknsp
       exponent: 6
