@@ -5,6 +5,7 @@ import (
 	"github.com/rs/zerolog/log"
 	database "validator-dashboard/app/db"
 	"validator-dashboard/app/models"
+	"validator-dashboard/app/services"
 )
 
 type SummaryWorker struct {
@@ -99,10 +100,6 @@ func (s *SummaryWorker) initSummaryWorker() {
 			TodayLeftDecreasedDelegationValue:      newDelegationSummaryLabel(),
 		}
 	}
-}
-
-func (s *SummaryWorker) runPreviousDayDelegationTask() {
-
 }
 
 func (s *SummaryWorker) runDelegationChangedTask() {
@@ -202,4 +199,6 @@ func (s *SummaryWorker) RunSummaryWorker() {
 	s.runNewDelegatorTask()
 	s.runLeftDelegatorTask()
 	s.runReturnedDelegatorTask()
+
+	services.AddToCache("summary", s.summary)
 }

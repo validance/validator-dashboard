@@ -133,7 +133,6 @@ func run() error {
 	defer db.Close()
 
 	// pipelining tasks
-
 	log.Info().Msg("History task running")
 	hw := spawnHistoryWorker(clients, db)
 	hw.RunHistoryWorker()

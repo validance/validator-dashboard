@@ -1,7 +1,7 @@
 app:
   host: localhost
   port: 8000
-  cron: 16:32:10
+  cron: 17:27:00
 
 coingeckoIds:
   - juno-network

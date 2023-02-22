@@ -7,11 +7,11 @@ import (
 
 var cache *goc.Cache
 
-func AddToCache(key string, value interface{}) error {
+func AddToCache(key string, value interface{}) {
 	if cache == nil {
 		cache = newCache()
 	}
-	return cache.Add(key, value, goc.DefaultExpiration)
+	cache.Set(key, value, goc.DefaultExpiration)
 }
 
 func GetCache(key string) (interface{}, bool) {
