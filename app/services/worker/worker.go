@@ -54,7 +54,7 @@ func (w worker) spawnValidatorDelegationHistoryTask(wg *sync.WaitGroup, task fun
 	`
 
 	for addr, delegation := range res {
-		_, err := w.db.Exec(query, addr, delegation.Validator, delegation.Chain, delegation.Amount.String())
+		_, err := w.db.Exec(query, addr, delegation.Validator, delegation.Chain, delegation.Amount)
 		if err != nil {
 			log.Err(err).Msg("failed to insert delegation history")
 		}
@@ -80,7 +80,7 @@ func (w worker) spawnValidatorIncomeHistoryTask(wg *sync.WaitGroup, task func() 
 		VALUES ($1, $2, $3, $4)
 	`
 
-	_, exeErr := w.db.Exec(query, res.Validator, res.Chain, res.Reward.String(), res.Commission.String())
+	_, exeErr := w.db.Exec(query, res.Validator, res.Chain, res.Reward, res.Commission)
 
 	if exeErr != nil {
 		log.Err(exeErr).Msg("failed to create validtor income history")
@@ -107,7 +107,7 @@ func (w worker) spawnGrantIncomeHistoryTask(wg *sync.WaitGroup, task func() (map
 	`
 
 	for grantAddr, reward := range res {
-		_, exeErr := w.db.Exec(query, grantAddr, reward.Validator, reward.Chain, reward.Reward.String())
+		_, exeErr := w.db.Exec(query, grantAddr, reward.Validator, reward.Chain, reward.Reward)
 		chain = reward.Chain
 		if exeErr != nil {
 			log.Err(exeErr).Msg("failed to create grant income history")

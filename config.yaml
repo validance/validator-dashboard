@@ -1,7 +1,7 @@
 app:
   host: localhost
   port: 8000
-  cron: 14:51:30
+  cron: 16:32:10
 
 database:
   host: validator-dashboard.chexhu4rkdnf.ap-northeast-2.rds.amazonaws.com

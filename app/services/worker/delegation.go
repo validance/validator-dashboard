@@ -25,24 +25,6 @@ func NewDelegationStatusTask(db *sqlx.DB) *DelegationTask {
 	}
 }
 
-func (d *DelegationTask) getManagedChains() []string {
-	var chains []string
-
-	queryErr := d.db.Select(
-		&chains,
-		`
-			SELECT DISTINCT chain
-			FROM delegation_history
-		`,
-	)
-
-	if queryErr != nil {
-		log.Err(queryErr).Msg("failed to get managed chains")
-	}
-
-	return chains
-}
-
 func (d *DelegationTask) getNewDelegators() []database.DelegationHistory {
 	var newDelegators []database.DelegationHistory
 
@@ -65,7 +47,7 @@ func (d *DelegationTask) getLeftDelegators() []database.DelegationHistory {
 	var leftDelegators []database.DelegationHistory
 
 	leftDelegatorsQuery := `
-		SELECT yesterday.*
+		SELECT yesterday.*, status.label, status.status
 		FROM 
 			(
 				SELECT *
@@ -78,6 +60,11 @@ func (d *DelegationTask) getLeftDelegators() []database.DelegationHistory {
 				WHERE DATE(delegation_history.create_dt) = CURRENT_DATE
 			) today
 			ON yesterday.address = today.address
+			JOIN (
+				SELECT *
+				FROM address_status
+			) status
+			ON yesterday.address = status.address
 		WHERE today is NULL
 	`
 
@@ -93,7 +80,7 @@ func (d *DelegationTask) getReturnedDelegators() []database.DelegationHistory {
 	var returnedDelegators []database.DelegationHistory
 
 	returnedDelegatorsQuery := `
-		SELECT DISTINCT ON (d.address) d.*
+		SELECT DISTINCT ON (d.address) d.*, a.label, a.status
 		FROM 
 			delegation_history d LEFT JOIN address_status a
 			ON d.address = a.address
@@ -120,8 +107,12 @@ func (d *DelegationTask) getDelegationChanged() []database.DelegationChanged {
 			today.validator, 
 			today.chain, 
 			today.amount as today_amount, 
-			yesterday.amount as yesterday_amount, 
-			ROUND(cast(today.amount as float)::numeric - cast(yesterday.amount as float)::numeric, 5) as difference
+			yesterday.amount as yesterday_amount,
+			today.create_dt as today_dt,
+			yesterday.create_dt as yesterday_dt,
+			ROUND(cast(today.amount as float)::numeric - cast(yesterday.amount as float)::numeric, 5) as difference,
+			status.label,
+			status.status
 		FROM (
 				SELECT *
 				FROM delegation_history
@@ -132,12 +123,17 @@ func (d *DelegationTask) getDelegationChanged() []database.DelegationChanged {
 				FROM delegation_history
 				WHERE DATE(delegation_history.create_dt) = CURRENT_DATE + INTERVAL '-1 DAYS'
 			) yesterday
-		ON 
-			today.address = yesterday.address
-			AND	
-			today.validator = yesterday.validator 
-			AND
-			today.amount != yesterday.amount
+			ON 
+				today.address = yesterday.address
+				AND	
+				today.validator = yesterday.validator 
+				AND
+				today.amount != yesterday.amount
+			JOIN (
+				SELECT * 
+				FROM address_status
+			) status
+			ON today.address = status.address
 	`
 
 	err := d.db.Select(&delegationChanged, query)

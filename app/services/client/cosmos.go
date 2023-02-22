@@ -118,10 +118,11 @@ func (v validatorQueryClient) validatorDelegations(offset uint64, limit uint64) 
 func (c cosmosClient) appendDelegationResponses(totalValidatorDelegations map[string]*models.Delegation, validatorDelegations staking.DelegationResponses) {
 	for _, d := range validatorDelegations {
 		delegationAmount := d.GetDelegation().GetShares().BigInt()
-		delegationAmountF := BigIntToFloat(delegationAmount.Div(delegationAmount, coin_c))
-		delegationAmountF = delegationAmountF.Quo(delegationAmountF, c.exponent)
+		delegationAmountBigF := BigIntToFloat(delegationAmount.Div(delegationAmount, coin_c))
+		delegationAmountBigF = delegationAmountBigF.Quo(delegationAmountBigF, c.exponent)
+		delegationAmountF, _ := delegationAmountBigF.Float64()
 
-		if FilterLowAmount(delegationAmountF) {
+		if FilterLowAmount(delegationAmountBigF) {
 			continue
 		}
 
@@ -199,13 +200,15 @@ func (c cosmosClient) ValidatorIncome() (*models.ValidatorIncome, error) {
 	}
 
 	reward := sdr.GetRewards().AmountOf(c.denom).BigInt()
-	rewardValF := BigIntToFloat(reward.Div(reward, coin_c))
-	rewardValF = rewardValF.Quo(rewardValF, c.exponent)
+	rewardValBigF := BigIntToFloat(reward.Div(reward, coin_c))
+	rewardValBigF = rewardValBigF.Quo(rewardValBigF, c.exponent)
+	rewardValF, _ := rewardValBigF.Float64()
 
 	commission := cm.GetCommission()
 	commissionVal := commission.GetCommission().AmountOf(c.denom).BigInt()
-	commissionValF := BigIntToFloat(commissionVal.Div(commissionVal, coin_c))
-	commissionValF = commissionValF.Quo(commissionValF, c.exponent)
+	commissionValBigF := BigIntToFloat(commissionVal.Div(commissionVal, coin_c))
+	commissionValBigF = commissionValBigF.Quo(commissionValBigF, c.exponent)
+	commissionValF, _ := commissionValBigF.Float64()
 
 	validatorIncome := &models.ValidatorIncome{
 		Chain:      c.chain,
@@ -230,12 +233,13 @@ func (c cosmosClient) GrantRewards() (map[string]*models.GrantReward, error) {
 			rewardVal := &models.GrantReward{
 				Chain:     c.chain,
 				Validator: c.validatorQueryClient.getOperatorAddr(),
-				Reward:    big.NewFloat(0),
+				Reward:    0,
 			}
 			r := reward.GetRewards().AmountOf(c.denom).BigInt()
 			rf := BigIntToFloat(r.Div(r, coin_c))
 			rf = rf.Quo(rf, c.exponent)
-			rewardVal.Reward = rf
+			f, _ := rf.Float64()
+			rewardVal.Reward = f
 
 			res[delegatorAddr] = rewardVal
 		}

@@ -1,5 +1,5 @@
 -- +migrate Up
-CREATE TYPE address_label AS ENUM ('a41', 'a41ventures', 'grant', 'b2b', 'b2c');
+CREATE TYPE address_label AS ENUM ('a41', 'a41ventures', 'grant', 'b2b', 'b2c', 'unknown');
 CREATE TYPE address_type AS ENUM ('new', 'existing', 'leave', 'return');
 
 CREATE TABLE IF NOT EXISTS delegation_history
@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS delegation_history
     address   VARCHAR(256) NOT NULL,
     validator VARCHAR(256),
     chain     VARCHAR(64)  NOT NULL,
-    amount    VARCHAR(256) NOT NULL,
+    amount    DOUBLE PRECISION NOT NULL,
     create_dt TIMESTAMP    NOT NULL default current_timestamp
 );
 
@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS address_status
     id         SERIAL PRIMARY KEY,
     address    VARCHAR(256)  NOT NULL,
     chain      VARCHAR(64)   NOT NULL,
-    label      address_label NOT NULL DEFAULT 'b2c',
+    label      address_label NOT NULL DEFAULT 'unknown',
     status     address_type  NOT NULL DEFAULT 'new',
     create_dt  TIMESTAMP     NOT NULL DEFAULT current_timestamp,
     update_dt TIMESTAMP     NOT NULL DEFAULT current_timestamp
