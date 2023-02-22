@@ -144,6 +144,11 @@ func run() error {
 	dt.RunDelegationStatusTask()
 	log.Info().Msg("Delegation status task end")
 
+	log.Info().Msg("TokenPrice task running")
+	tp := NewTokenPriceTask(db)
+	tp.RunTokenPriceTask()
+	log.Info().Msg("TokenPrice task end")
+
 	log.Info().Msg("Summary task running")
 	sw := NewSummaryWorker(dt)
 	sw.RunSummaryWorker()

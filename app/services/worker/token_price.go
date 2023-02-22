@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"validator-dashboard/app/config"
 	database "validator-dashboard/app/db"
 
 	"github.com/jmoiron/sqlx"
@@ -15,7 +16,6 @@ import (
 type TokenPriceTask struct {
 	db             *sqlx.DB
 	newTokenPrices []database.TokenPrice
-	coinGeckoIdMap map[string]string
 }
 
 type Coin struct {
@@ -31,28 +31,7 @@ func NewTokenPriceTask(db *sqlx.DB) *TokenPriceTask {
 	return &TokenPriceTask{
 		db,
 		nil,
-		map[string]string{
-			"juno": "juno-network",
-		},
 	}
-}
-
-func (t *TokenPriceTask) getManagedChains() []string {
-	var chains []string
-
-	queryErr := t.db.Select(
-		&chains,
-		`
-			SELECT DISTINCT chain
-			FROM delegation_history
-		`,
-	)
-
-	if queryErr != nil {
-		log.Err(queryErr).Msg("failed to get managed chains")
-	}
-
-	return chains
 }
 
 func (t *TokenPriceTask) createNewTokenPrices(tps []database.TokenPrice) {
@@ -69,7 +48,7 @@ func (t *TokenPriceTask) createNewTokenPrices(tps []database.TokenPrice) {
 	}
 }
 
-func (t *TokenPriceTask) getNewTokenPrices(chains []string) []database.TokenPrice {
+func (t *TokenPriceTask) getNewTokenPrices(chainIds []string) []database.TokenPrice {
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", "https://api.coingecko.com/api/v3/coins/markets", nil)
 	if err != nil {
@@ -79,16 +58,6 @@ func (t *TokenPriceTask) getNewTokenPrices(chains []string) []database.TokenPric
 
 	q := url.Values{}
 	q.Add("vs_currency", "usd")
-
-	chainIds := make([]string, len(chains))
-
-	for i, chain := range chains {
-		id := t.coinGeckoIdMap[chain]
-		if id == "" {
-			id = chain
-		}
-		chainIds[i] = id
-	}
 	q.Add("ids", strings.Join(chainIds, ","))
 
 	req.Header.Set("Accepts", "application/json")
@@ -116,9 +85,9 @@ func (t *TokenPriceTask) getNewTokenPrices(chains []string) []database.TokenPric
 }
 
 func (t *TokenPriceTask) RunTokenPriceTask() {
-	chains := t.getManagedChains()
+	chainIds := config.GetConfig().CoingeckoIds
 
-	newTokenPrices := t.getNewTokenPrices(chains)
+	newTokenPrices := t.getNewTokenPrices(chainIds)
 
 	if newTokenPrices != nil {
 		t.createNewTokenPrices(newTokenPrices)
