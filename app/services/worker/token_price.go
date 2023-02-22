@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"strings"
 	"sync"
 	database "validator-dashboard/app/db"
 
@@ -15,22 +16,15 @@ import (
 type TokenPriceTask struct {
 	db             *sqlx.DB
 	newTokenPrices []database.TokenPrice
+	coinGeckoIdMap map[string]string
 }
 
-type Quote struct {
-	Price float64 `json:"price"`
-}
-
-type Currency struct {
-	ID     int              `json:"id"`
-	Name   string           `json:"name"`
-	Symbol string           `json:"symbol"`
-	Slug   string           `json:"slug"`
-	Quote  map[string]Quote `json:"quote"`
-}
-
-type QuotesApiResponseBody struct {
-	Currencies map[string]Currency `json:"data"`
+type Coin struct {
+	ID           int     `json:"id"`
+	Name         string  `json:"name"`
+	Symbol       string  `json:"symbol"`
+	Slug         string  `json:"slug"`
+	CurrentPrice float64 `json:"current_price"`
 }
 
 func NewTokenPriceTask(db *sqlx.DB) *TokenPriceTask {
@@ -38,6 +32,9 @@ func NewTokenPriceTask(db *sqlx.DB) *TokenPriceTask {
 	return &TokenPriceTask{
 		db,
 		nil,
+		map[string]string{
+			"juno": "juno-network",
+		},
 	}
 }
 
@@ -73,21 +70,29 @@ func (t *TokenPriceTask) createNewTokenPrices(tps []database.TokenPrice) {
 	}
 }
 
-func (t *TokenPriceTask) getNewTokenPrices(slugs []string) []database.TokenPrice {
+func (t *TokenPriceTask) getNewTokenPrices(chains []string) []database.TokenPrice {
 	client := &http.Client{}
-	req, err := http.NewRequest("GET", "https://sandbox-api.coinmarketcap.com/v2/cryptocurrency/quotes/latest", nil)
+	req, err := http.NewRequest("GET", "https://api.coingecko.com/api/v3/coins/markets", nil)
 	if err != nil {
 		log.Err(err).Msg("failed to create http request")
 		return nil
 	}
 
 	q := url.Values{}
-	for _, slug := range slugs {
-		q.Add("slug", slug)
+	q.Add("vs_currency", "usd")
+
+	chainIds := make([]string, len(chains))
+
+	for i, chain := range chains {
+		id := t.coinGeckoIdMap[chain]
+		if id == "" {
+			id = chain
+		}
+		chainIds[i] = id
 	}
+	q.Add("ids", strings.Join(chainIds, ","))
 
 	req.Header.Set("Accepts", "application/json")
-	req.Header.Add("X-CMC_PRO_API_KEY", "b54bcf4d-1bca-4e8e-9a24-22ff2c3d462c")
 	req.URL.RawQuery = q.Encode()
 
 	resp, err := client.Do(req)
@@ -98,14 +103,14 @@ func (t *TokenPriceTask) getNewTokenPrices(slugs []string) []database.TokenPrice
 
 	respBytes, _ := ioutil.ReadAll(resp.Body)
 
-	respBody := QuotesApiResponseBody{}
-	json.Unmarshal(respBytes, &respBody)
+	coins := []Coin{}
+	json.Unmarshal(respBytes, &coins)
 
-	tokenPrices := make([]database.TokenPrice, len(respBody.Currencies))
+	tokenPrices := make([]database.TokenPrice, len(coins))
 
-	for slug, currency := range respBody.Currencies {
-		tokenPrice := database.TokenPrice{Chain: slug, Ticker: currency.Symbol, Price: currency.Quote["USD"].Price}
-		tokenPrices = append(tokenPrices, tokenPrice)
+	for i, coin := range coins {
+		tokenPrice := database.TokenPrice{Chain: coin.Symbol, Ticker: coin.Symbol, Price: coin.CurrentPrice}
+		tokenPrices[i] = tokenPrice
 	}
 
 	return tokenPrices
