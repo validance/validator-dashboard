@@ -1,13 +1,14 @@
 package worker
 
 import (
-	"github.com/jasonlvhit/gocron"
-	"github.com/jmoiron/sqlx"
-	"github.com/rs/zerolog/log"
 	"sync"
 	database "validator-dashboard/app/db"
 	"validator-dashboard/app/models"
 	"validator-dashboard/app/services/client"
+
+	"github.com/jasonlvhit/gocron"
+	"github.com/jmoiron/sqlx"
+	"github.com/rs/zerolog/log"
 )
 
 type worker struct {
@@ -142,6 +143,11 @@ func run() error {
 	dt := NewDelegationStatusTask(db)
 	dt.RunDelegationStatusTask()
 	log.Info().Msg("Delegation status task end")
+
+	log.Info().Msg("TokenPrice task running")
+	tp := NewTokenPriceTask(db)
+	tp.RunTokenPriceTask()
+	log.Info().Msg("TokenPrice task end")
 
 	log.Info().Msg("Summary task running")
 	sw := NewSummaryWorker(dt)
