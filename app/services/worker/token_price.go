@@ -5,7 +5,8 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"strings"
+	"sync"
+	"time"
 	"validator-dashboard/app/config"
 	database "validator-dashboard/app/db"
 
@@ -18,12 +19,20 @@ type TokenPriceTask struct {
 	newTokenPrices []database.TokenPrice
 }
 
-type Coin struct {
-	ID           int     `json:"id"`
-	Name         string  `json:"name"`
-	Symbol       string  `json:"symbol"`
-	Slug         string  `json:"slug"`
-	CurrentPrice float64 `json:"current_price"`
+type CurrentPriceResponse struct {
+	Usd float64 `json:"usd"`
+}
+
+type MarketDataResponse struct {
+	CurrentPrice CurrentPriceResponse `json:"current_price"`
+}
+
+type CoinHistoryResponse struct {
+	ID         string             `json:"id"`
+	Name       string             `json:"name"`
+	Symbol     string             `json:"symbol"`
+	Slug       string             `json:"slug"`
+	MarketData MarketDataResponse `json:"market_data"`
 }
 
 func NewTokenPriceTask(db *sqlx.DB) *TokenPriceTask {
@@ -34,7 +43,7 @@ func NewTokenPriceTask(db *sqlx.DB) *TokenPriceTask {
 	}
 }
 
-func (t *TokenPriceTask) createNewTokenPrices(tps []database.TokenPrice) {
+func (t *TokenPriceTask) createNewTokenPrices(tps []*database.TokenPrice) {
 	createQuery := `
 		INSERT INTO token_price(chain, ticker, price)
 		VALUES ($1, $2, $3)
@@ -48,17 +57,21 @@ func (t *TokenPriceTask) createNewTokenPrices(tps []database.TokenPrice) {
 	}
 }
 
-func (t *TokenPriceTask) getNewTokenPrices(chainIds []string) []database.TokenPrice {
+func (t *TokenPriceTask) getNewTokenPrice(chainId string) (*database.TokenPrice, error) {
+	var tokenPrice *database.TokenPrice
+
 	client := &http.Client{}
-	req, err := http.NewRequest("GET", "https://api.coingecko.com/api/v3/coins/markets", nil)
+	req, err := http.NewRequest("GET", "https://api.coingecko.com/api/v3/coins/"+chainId+"/history", nil)
 	if err != nil {
 		log.Err(err).Msg("failed to create http request")
-		return nil
+		return nil, err
 	}
 
+	yesterday := time.Now().AddDate(0, 0, -1).Format("02-01-2006")
+
 	q := url.Values{}
-	q.Add("vs_currency", "usd")
-	q.Add("ids", strings.Join(chainIds, ","))
+	q.Add("date", yesterday)
+	q.Add("localization", "false")
 
 	req.Header.Set("Accepts", "application/json")
 	req.URL.RawQuery = q.Encode()
@@ -66,30 +79,47 @@ func (t *TokenPriceTask) getNewTokenPrices(chainIds []string) []database.TokenPr
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Err(err).Msg("failed to receive token price from api")
-		return nil
+		return nil, err
 	}
 
 	respBytes, _ := ioutil.ReadAll(resp.Body)
 
-	coins := []Coin{}
-	json.Unmarshal(respBytes, &coins)
+	respBody := CoinHistoryResponse{}
+	json.Unmarshal(respBytes, &respBody)
 
-	tokenPrices := make([]database.TokenPrice, len(coins))
-
-	for i, coin := range coins {
-		tokenPrice := database.TokenPrice{Chain: coin.Symbol, Ticker: coin.Symbol, Price: coin.CurrentPrice}
-		tokenPrices[i] = tokenPrice
+	tokenPrice = &database.TokenPrice{
+		Chain:  respBody.Symbol,
+		Ticker: respBody.Symbol,
+		Price:  respBody.MarketData.CurrentPrice.Usd,
 	}
 
-	return tokenPrices
+	return tokenPrice, nil
 }
 
 func (t *TokenPriceTask) RunTokenPriceTask() {
+	var newTokenPrices []*database.TokenPrice
+
 	chainIds := config.GetConfig().CoingeckoIds
 
-	newTokenPrices := t.getNewTokenPrices(chainIds)
+	tasksNum := len(chainIds)
+	var wg sync.WaitGroup
 
-	if newTokenPrices != nil {
-		t.createNewTokenPrices(newTokenPrices)
+	wg.Add(tasksNum)
+
+	for _, chainId := range chainIds {
+		chainId := chainId
+		go func() {
+			defer wg.Done()
+
+			newTokenPrice, _ := t.getNewTokenPrice(chainId)
+			if newTokenPrice != nil {
+				newTokenPrices = append(newTokenPrices, newTokenPrice)
+			}
+
+		}()
 	}
+
+	wg.Wait()
+
+	t.createNewTokenPrices(newTokenPrices)
 }
