@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
-	"sync"
 	database "validator-dashboard/app/db"
 
 	"github.com/jmoiron/sqlx"
@@ -117,19 +116,11 @@ func (t *TokenPriceTask) getNewTokenPrices(chains []string) []database.TokenPric
 }
 
 func (t *TokenPriceTask) RunTokenPriceTask() {
-	tasksNum := 1
-	var wg sync.WaitGroup
+	chains := t.getManagedChains()
 
-	wg.Add(tasksNum)
+	newTokenPrices := t.getNewTokenPrices(chains)
 
-	go func() {
-		defer wg.Done()
-		chains := t.getManagedChains()
-		newTokenPrices := t.getNewTokenPrices(chains)
-		if newTokenPrices != nil {
-			t.createNewTokenPrices(newTokenPrices)
-		}
-	}()
-
-	wg.Wait()
+	if newTokenPrices != nil {
+		t.createNewTokenPrices(newTokenPrices)
+	}
 }
