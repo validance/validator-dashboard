@@ -3,6 +3,9 @@ app:
   port: 8000
   cron: 16:32:10
 
+coingeckoIds:
+  - juno-network
+
 database:
   host: validator-dashboard.chexhu4rkdnf.ap-northeast-2.rds.amazonaws.com
   port: 5432
@@ -14,7 +17,6 @@ cosmos:
   - juno:
       grpcUrl: juno-grpc.polkachu.com:12690
       denom: ujuno
-      coingeckoId: juno-network
       validatorOperatorAddr: junovaloper19cdcyqej774srr90qdyxggdf3hcqzq9mknqutc
       validatorAddr: juno19cdcyqej774srr90qdyxggdf3hcqzq9mfwknsp
       exponent: 6

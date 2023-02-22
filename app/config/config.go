@@ -8,11 +8,12 @@ import (
 var config *Config
 
 type Config struct {
-	App      App                       `mapstructure:"app"`
-	Database Database                  `mapstructure:"database"`
-	Cosmos   map[string]CosmosAppchain `mapstructure:"cosmos"`
-	Aptos    Aptos                     `mapstructure:"aptos"`
-	Polygon  Polygon                   `mapstructure:"polygon"`
+	App          App                       `mapstructure:"app"`
+	CoingeckoIds []string                  `mapstructure:"coingeckoIds"`
+	Database     Database                  `mapstructure:"database"`
+	Cosmos       map[string]CosmosAppchain `mapstructure:"cosmos"`
+	Aptos        Aptos                     `mapstructure:"aptos"`
+	Polygon      Polygon                   `mapstructure:"polygon"`
 }
 
 type App struct {
@@ -32,7 +33,6 @@ type Database struct {
 type CosmosAppchain struct {
 	GrpcUrl               string   `mapstructure:"grpcUrl"`
 	Denom                 string   `mapstructure:"denom"`
-	CoingeckoId           string   `mapstructure:"coingeckoId"`
 	ValidatorOperatorAddr string   `mapstructure:"validatorOperatorAddr"`
 	ValidatorAddr         string   `mapstructure:"validatorAddr"`
 	Exponent              int      `mapstructure:"exponent"`
