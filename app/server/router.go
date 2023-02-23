@@ -1,8 +1,9 @@
 package server
 
 import (
-	"github.com/gin-gonic/gin"
 	"validator-dashboard/app/controllers"
+
+	"github.com/gin-gonic/gin"
 )
 
 func AddRouters(app *gin.Engine) {
@@ -10,4 +11,5 @@ func AddRouters(app *gin.Engine) {
 
 	controllers.AddDelegationRouters(v1)
 	controllers.AddIncomeRouters(v1)
+	controllers.AddGrantRewardRouters(v1)
 }
