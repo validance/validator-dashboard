@@ -10,7 +10,7 @@ import (
 
 func delegation(c *gin.Context) {
 	chain := c.Param("chain")
-	summary, check := services.GetCache("summary")
+	summary, check := services.GetCache("delegation_summary")
 	if !check {
 		log.Error().Msg("summary not found")
 	}

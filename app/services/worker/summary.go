@@ -46,6 +46,27 @@ func (s *SummaryWorker) getManagedChains() []string {
 	return chains
 }
 
+func (s *SummaryWorker) getCoinPrice(chain string) float64 {
+	var price float64
+
+	query := `
+		SELECT DISTINCT price 
+		FROM token_price
+		WHERE
+		    chain = $1 
+		    AND
+		    DATE(create_dt) = CURRENT_DATE + INTERVAL '-1 days'
+	`
+
+	err := s.db.Get(&price, query, chain)
+	if err != nil {
+		log.Err(err).Msg("cannot get token price")
+		price = 0
+	}
+
+	return price
+}
+
 func (s *SummaryWorker) setPreviousDayDelegations() {
 	var pd []database.DelegationHistory
 
@@ -79,6 +100,7 @@ func newDelegationSummaryLabel() *models.DelegationSummaryLabel {
 		B2B:     0,
 		B2C:     0,
 		Unknown: 0,
+		Sum:     0,
 	}
 }
 
@@ -87,19 +109,17 @@ func (s *SummaryWorker) initSummaryWorker() {
 	for _, c := range s.getManagedChains() {
 		s.summary[c] = &models.DelegationSummary{
 			YesterdayDelegationAmount:              newDelegationSummaryLabel(),
-			YesterdayDelegationValue:               newDelegationSummaryLabel(),
 			TodayExistingIncreasedDelegationAmount: newDelegationSummaryLabel(),
-			TodayExistingIncreasedDelegationValue:  newDelegationSummaryLabel(),
 			TodayNewIncreasedDelegationAmount:      newDelegationSummaryLabel(),
-			TodayNewIncreasedDelegationValue:       newDelegationSummaryLabel(),
 			TodayReturnIncreasedDelegationAmount:   newDelegationSummaryLabel(),
-			TodayReturnIncreasedDelegationValue:    newDelegationSummaryLabel(),
 			TodayExistingDecreasedDelegationAmount: newDelegationSummaryLabel(),
-			TodayExistingDecreasedDelegationValue:  newDelegationSummaryLabel(),
 			TodayLeftDecreasedDelegationAmount:     newDelegationSummaryLabel(),
-			TodayLeftDecreasedDelegationValue:      newDelegationSummaryLabel(),
 		}
 	}
+}
+
+func (s *SummaryWorker) sumUpDelegationValues(i *models.DelegationSummaryLabel) {
+	i.Sum = i.B2B + i.B2C + i.Unknown
 }
 
 func (s *SummaryWorker) runDelegationChangedTask() {
@@ -114,6 +134,7 @@ func (s *SummaryWorker) runDelegationChangedTask() {
 			case "unknown":
 				s.summary[d.Chain].TodayNewIncreasedDelegationAmount.Unknown += d.Difference
 			}
+			s.sumUpDelegationValues(s.summary[d.Chain].TodayNewIncreasedDelegationAmount)
 
 		case "existing":
 			if d.Difference > 0 {
@@ -125,6 +146,7 @@ func (s *SummaryWorker) runDelegationChangedTask() {
 				case "unknown":
 					s.summary[d.Chain].TodayExistingIncreasedDelegationAmount.Unknown += d.Difference
 				}
+				s.sumUpDelegationValues(s.summary[d.Chain].TodayExistingIncreasedDelegationAmount)
 
 			} else if d.Difference < 0 {
 				switch d.Label {
@@ -135,6 +157,7 @@ func (s *SummaryWorker) runDelegationChangedTask() {
 				case "unknown":
 					s.summary[d.Chain].TodayExistingDecreasedDelegationAmount.Unknown += d.Difference
 				}
+				s.sumUpDelegationValues(s.summary[d.Chain].TodayExistingDecreasedDelegationAmount)
 			}
 
 		case "leave":
@@ -146,6 +169,7 @@ func (s *SummaryWorker) runDelegationChangedTask() {
 			case "unknown":
 				s.summary[d.Chain].TodayLeftDecreasedDelegationAmount.Unknown += d.Difference
 			}
+			s.sumUpDelegationValues(s.summary[d.Chain].TodayLeftDecreasedDelegationAmount)
 
 		case "return":
 			switch d.Label {
@@ -156,6 +180,7 @@ func (s *SummaryWorker) runDelegationChangedTask() {
 			case "unknown":
 				s.summary[d.Chain].TodayReturnIncreasedDelegationAmount.Unknown += d.Difference
 			}
+			s.sumUpDelegationValues(s.summary[d.Chain].TodayReturnIncreasedDelegationAmount)
 		}
 	}
 }
@@ -192,6 +217,84 @@ func (s *SummaryWorker) runReturnedDelegatorTask() {
 	}
 }
 
+func (s *SummaryWorker) runCreateDelegationSummaryTask() {
+	createQuery := `
+		INSERT INTO delegation_summary (
+			chain, 
+		                                
+			yesterday_delegation_amount_total, 
+			yesterday_delegation_amount_b2b, 
+			yesterday_delegation_amount_b2c, 
+			yesterday_delegation_amount_unknown,
+		                                
+			today_existing_increased_delegation_amount_total,
+			today_existing_increased_delegation_amount_b2b,
+			today_existing_increased_delegation_amount_b2c,
+			today_existing_increased_delegation_amount_unknown,
+		                                
+			today_new_increased_delegation_amount_total,
+			today_new_increased_delegation_amount_b2b,
+			today_new_increased_delegation_amount_b2c,
+			today_new_increased_delegation_amount_unknown,
+		                                
+			today_return_increased_delegation_amount_total,
+			today_return_increased_delegation_amount_b2b,
+			today_return_increased_delegation_amount_b2c,
+			today_return_increased_delegation_amount_unknown,
+		                                
+			today_existing_decreased_delegation_amount_total,
+			today_existing_decreased_delegation_amount_b2b,
+			today_existing_decreased_delegation_amount_b2c,
+			today_existing_decreased_delegation_amount_unknown,
+		                                
+			today_left_decreased_delegation_amount_total,
+			today_left_decreased_delegation_amount_b2b,
+			today_left_decreased_delegation_amount_b2c,
+			today_left_decreased_delegation_amount_unknown
+		)
+		VALUES 
+		($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25)
+	`
+	for chain, summary := range s.summary {
+		_, err := s.db.Exec(
+			createQuery,
+
+			chain,
+
+			summary.YesterdayDelegationAmount.Sum,
+			summary.YesterdayDelegationAmount.B2B,
+			summary.YesterdayDelegationAmount.B2C,
+			summary.YesterdayDelegationAmount.Unknown,
+
+			summary.TodayExistingIncreasedDelegationAmount.Sum,
+			summary.TodayExistingIncreasedDelegationAmount.B2B,
+			summary.TodayExistingIncreasedDelegationAmount.B2C,
+			summary.TodayExistingIncreasedDelegationAmount.Unknown,
+
+			summary.TodayNewIncreasedDelegationAmount.Sum,
+			summary.TodayNewIncreasedDelegationAmount.B2B,
+			summary.TodayNewIncreasedDelegationAmount.B2C,
+			summary.TodayNewIncreasedDelegationAmount.Unknown,
+
+			summary.TodayReturnIncreasedDelegationAmount.Sum,
+			summary.TodayReturnIncreasedDelegationAmount.B2B,
+			summary.TodayReturnIncreasedDelegationAmount.B2C,
+			summary.TodayReturnIncreasedDelegationAmount.Unknown,
+
+			summary.TodayExistingDecreasedDelegationAmount.Sum,
+			summary.TodayExistingDecreasedDelegationAmount.B2B,
+			summary.TodayExistingDecreasedDelegationAmount.B2C,
+			summary.TodayExistingDecreasedDelegationAmount.Unknown,
+
+			summary.TodayLeftDecreasedDelegationAmount.Sum,
+			summary.TodayLeftDecreasedDelegationAmount.B2B,
+			summary.TodayLeftDecreasedDelegationAmount.B2C,
+			summary.TodayLeftDecreasedDelegationAmount.Unknown,
+		)
+		log.Err(err).Msg("cannot create delegation summary")
+	}
+}
+
 func (s *SummaryWorker) RunSummaryWorker() {
 	s.initSummaryWorker()
 	s.setPreviousDayDelegations()
@@ -199,6 +302,7 @@ func (s *SummaryWorker) RunSummaryWorker() {
 	s.runNewDelegatorTask()
 	s.runLeftDelegatorTask()
 	s.runReturnedDelegatorTask()
+	s.runCreateDelegationSummaryTask()
 
-	services.AddToCache("summary", s.summary)
+	services.AddToCache("delegation_summary", s.summary)
 }

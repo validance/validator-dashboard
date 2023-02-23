@@ -3,9 +3,11 @@ package config
 import (
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
+	"sync"
 )
 
 var config *Config
+var once sync.Once
 
 type Config struct {
 	App          App                       `mapstructure:"app"`
@@ -49,12 +51,12 @@ type Polygon struct {
 
 func GetConfig() *Config {
 	if config == nil {
-		config = newConfig()
+		once.Do(newConfig)
 	}
 	return config
 }
 
-func newConfig() *Config {
+func newConfig() {
 	config = new(Config)
 
 	v := viper.New()
@@ -69,6 +71,4 @@ func newConfig() *Config {
 	if err := v.Unmarshal(config); err != nil {
 		log.Printf("cannot parse config file\n")
 	}
-
-	return config
 }

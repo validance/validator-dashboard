@@ -124,13 +124,7 @@ func (w worker) spawnGrantIncomeHistoryTask(wg *sync.WaitGroup, task func() (map
 func run() error {
 	clients := client.Initialize()
 
-	db, dbErr := database.New()
-	if dbErr != nil {
-		log.Err(dbErr).Msg("failed to initialize database")
-		return dbErr
-	}
-
-	defer db.Close()
+	db := database.GetDB()
 
 	// pipelining tasks
 	log.Info().Msg("History task running")

@@ -34,32 +34,21 @@ type GrantReward struct {
 type DelegationSummary struct {
 	// 기존 전일 위임량
 	YesterdayDelegationAmount *DelegationSummaryLabel
-	// 기존 전일 위임액
-	YesterdayDelegationValue *DelegationSummaryLabel
 	// 기존 당일 추가 위임량
 	TodayExistingIncreasedDelegationAmount *DelegationSummaryLabel
-	// 기존 당일 추가 위임액
-	TodayExistingIncreasedDelegationValue *DelegationSummaryLabel
 	// 신규 당일 추가 위임량
 	TodayNewIncreasedDelegationAmount *DelegationSummaryLabel
-	// 신규 당일 추가 위임액
-	TodayNewIncreasedDelegationValue *DelegationSummaryLabel
 	// 재방문 당일 위임량
 	TodayReturnIncreasedDelegationAmount *DelegationSummaryLabel
-	// 재방문 당일 위임액
-	TodayReturnIncreasedDelegationValue *DelegationSummaryLabel
 	// 기존 당일 줄어든 위임량
 	TodayExistingDecreasedDelegationAmount *DelegationSummaryLabel
-	// 기존 당일 줄어든 위임액
-	TodayExistingDecreasedDelegationValue *DelegationSummaryLabel
 	// 이탈 당일 이탈한 위임량
 	TodayLeftDecreasedDelegationAmount *DelegationSummaryLabel
-	// 이탈 당일 이탈한 위임액
-	TodayLeftDecreasedDelegationValue *DelegationSummaryLabel
 }
 
 type DelegationSummaryLabel struct {
 	B2B     float64
 	B2C     float64
 	Unknown float64
+	Sum     float64
 }

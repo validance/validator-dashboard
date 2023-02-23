@@ -43,3 +43,15 @@ type TokenPrice struct {
 	Price     float64   `db:"price"`
 	CreatedDt time.Time `db:"create_dt"`
 }
+
+type IncomeHistory struct {
+	Id              int       `db:"id"`
+	Address         string    `db:"address"`
+	Chain           string    `db:"chain"`
+	Reward          float64   `db:"reward"`
+	Commission      float64   `db:"commission"`
+	Create_dt       time.Time `db:"create_dt"`
+	Price           float64   `db:"price"`
+	RewardValue     float64   `db:"reward_value"`
+	CommissionValue float64   `db:"commission_value"`
+}

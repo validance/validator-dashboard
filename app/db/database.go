@@ -4,10 +4,22 @@ import (
 	"fmt"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
+	"github.com/rs/zerolog/log"
+	"sync"
 	"validator-dashboard/app/config"
 )
 
-func New() (*sqlx.DB, error) {
+var once sync.Once
+var db *sqlx.DB
+
+func GetDB() *sqlx.DB {
+	if db == nil {
+		once.Do(newDB)
+	}
+	return db
+}
+
+func newDB() {
 	c := config.GetConfig()
 	uri := fmt.Sprintf(
 		"host=%s port=%s user=%s password=%s dbname=%s sslmode=disable connect_timeout=%d",
@@ -19,14 +31,14 @@ func New() (*sqlx.DB, error) {
 		5,
 	)
 
-	db, dbOpenErr := sqlx.Connect("postgres", uri)
+	database, dbOpenErr := sqlx.Connect("postgres", uri)
 
-	db.SetMaxOpenConns(10)
-	db.SetMaxIdleConns(10)
+	database.SetMaxOpenConns(10)
+	database.SetMaxIdleConns(10)
 
 	if dbOpenErr != nil {
-		return nil, dbOpenErr
+		log.Err(dbOpenErr).Msg("failed to open db")
 	}
 
-	return db, nil
+	db = database
 }
