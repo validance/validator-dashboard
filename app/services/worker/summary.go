@@ -92,6 +92,7 @@ func (s *SummaryWorker) setPreviousDayDelegations() {
 		case "unknown":
 			s.summary[p.Chain].YesterdayDelegationAmount.Unknown += p.Amount
 		}
+		s.summary[p.Chain].YesterdayDelegationAmount.Sum += p.Amount
 	}
 }
 
@@ -188,6 +189,7 @@ func (s *SummaryWorker) runDelegationChangedTask() {
 func (s *SummaryWorker) runNewDelegatorTask() {
 	for _, n := range s.newDelegators {
 		s.summary[n.Chain].TodayNewIncreasedDelegationAmount.Unknown += n.Amount
+		s.summary[n.Chain].TodayNewIncreasedDelegationAmount.Sum += n.Amount
 	}
 }
 
@@ -201,6 +203,7 @@ func (s *SummaryWorker) runLeftDelegatorTask() {
 		case "unknown":
 			s.summary[l.Chain].TodayLeftDecreasedDelegationAmount.Unknown += l.Amount
 		}
+		s.summary[l.Chain].TodayLeftDecreasedDelegationAmount.Sum += l.Amount
 	}
 }
 
@@ -214,6 +217,7 @@ func (s *SummaryWorker) runReturnedDelegatorTask() {
 		case "unknown":
 			s.summary[r.Chain].TodayReturnIncreasedDelegationAmount.Unknown += r.Amount
 		}
+		s.summary[r.Chain].TodayReturnIncreasedDelegationAmount.Sum += r.Amount
 	}
 }
 
@@ -291,7 +295,9 @@ func (s *SummaryWorker) runCreateDelegationSummaryTask() {
 			summary.TodayLeftDecreasedDelegationAmount.B2C,
 			summary.TodayLeftDecreasedDelegationAmount.Unknown,
 		)
-		log.Err(err).Msg("cannot create delegation summary")
+		if err != nil {
+			log.Err(err).Msg("cannot create delegation summary")
+		}
 	}
 }
 
