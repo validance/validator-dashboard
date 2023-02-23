@@ -5,7 +5,6 @@ import (
 	"github.com/rs/zerolog/log"
 	database "validator-dashboard/app/db"
 	"validator-dashboard/app/models"
-	"validator-dashboard/app/services"
 )
 
 type SummaryWorker struct {
@@ -67,7 +66,7 @@ func (s *SummaryWorker) getCoinPrice(chain string) float64 {
 	return price
 }
 
-func (s *SummaryWorker) setPreviousDayDelegations() {
+func (s *SummaryWorker) runPreviousDayDelegationsTask() {
 	var pd []database.DelegationHistory
 
 	query := `
@@ -96,6 +95,35 @@ func (s *SummaryWorker) setPreviousDayDelegations() {
 	}
 }
 
+func (s *SummaryWorker) runTodayDelegationsTask() {
+	var pd []database.DelegationHistory
+
+	query := `
+		SELECT d.*, a.label, a.status
+		FROM 
+			address_status a JOIN delegation_history d
+			ON a.address = d.address
+		WHERE DATE(d.create_dt) = CURRENT_DATE
+	`
+
+	err := s.db.Select(&pd, query)
+	if err != nil {
+		log.Err(err).Msg("failed to get today delegations")
+	}
+
+	for _, p := range pd {
+		switch p.Label {
+		case "b2b":
+			s.summary[p.Chain].TodayDelegationAmount.B2B += p.Amount
+		case "b2c":
+			s.summary[p.Chain].TodayDelegationAmount.B2C += p.Amount
+		case "unknown":
+			s.summary[p.Chain].TodayDelegationAmount.Unknown += p.Amount
+		}
+		s.summary[p.Chain].TodayDelegationAmount.Sum += p.Amount
+	}
+}
+
 func newDelegationSummaryLabel() *models.DelegationSummaryLabel {
 	return &models.DelegationSummaryLabel{
 		B2B:     0,
@@ -110,6 +138,7 @@ func (s *SummaryWorker) initSummaryWorker() {
 	for _, c := range s.getManagedChains() {
 		s.summary[c] = &models.DelegationSummary{
 			YesterdayDelegationAmount:              newDelegationSummaryLabel(),
+			TodayDelegationAmount:                  newDelegationSummaryLabel(),
 			TodayExistingIncreasedDelegationAmount: newDelegationSummaryLabel(),
 			TodayNewIncreasedDelegationAmount:      newDelegationSummaryLabel(),
 			TodayReturnIncreasedDelegationAmount:   newDelegationSummaryLabel(),
@@ -164,11 +193,11 @@ func (s *SummaryWorker) runDelegationChangedTask() {
 		case "leave":
 			switch d.Label {
 			case "b2b":
-				s.summary[d.Chain].TodayLeftDecreasedDelegationAmount.B2B += d.Difference
+				s.summary[d.Chain].TodayLeftDecreasedDelegationAmount.B2B -= d.Difference
 			case "b2c":
-				s.summary[d.Chain].TodayLeftDecreasedDelegationAmount.B2C += d.Difference
+				s.summary[d.Chain].TodayLeftDecreasedDelegationAmount.B2C -= d.Difference
 			case "unknown":
-				s.summary[d.Chain].TodayLeftDecreasedDelegationAmount.Unknown += d.Difference
+				s.summary[d.Chain].TodayLeftDecreasedDelegationAmount.Unknown -= d.Difference
 			}
 			s.sumUpDelegationValues(s.summary[d.Chain].TodayLeftDecreasedDelegationAmount)
 
@@ -197,11 +226,11 @@ func (s *SummaryWorker) runLeftDelegatorTask() {
 	for _, l := range s.leftDelegators {
 		switch l.Label {
 		case "b2b":
-			s.summary[l.Chain].TodayLeftDecreasedDelegationAmount.B2B += l.Amount
+			s.summary[l.Chain].TodayLeftDecreasedDelegationAmount.B2B -= l.Amount
 		case "b2c":
-			s.summary[l.Chain].TodayLeftDecreasedDelegationAmount.B2C += l.Amount
+			s.summary[l.Chain].TodayLeftDecreasedDelegationAmount.B2C -= l.Amount
 		case "unknown":
-			s.summary[l.Chain].TodayLeftDecreasedDelegationAmount.Unknown += l.Amount
+			s.summary[l.Chain].TodayLeftDecreasedDelegationAmount.Unknown -= l.Amount
 		}
 		s.summary[l.Chain].TodayLeftDecreasedDelegationAmount.Sum += l.Amount
 	}
@@ -254,10 +283,15 @@ func (s *SummaryWorker) runCreateDelegationSummaryTask() {
 			today_left_decreased_delegation_amount_total,
 			today_left_decreased_delegation_amount_b2b,
 			today_left_decreased_delegation_amount_b2c,
-			today_left_decreased_delegation_amount_unknown
+			today_left_decreased_delegation_amount_unknown,
+		                                
+		    today_delegation_amount_total,
+		    today_delegation_amount_b2b,
+			today_delegation_amount_b2c,
+			today_delegation_amount_unknown
 		)
 		VALUES 
-		($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25)
+		($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29)
 	`
 	for chain, summary := range s.summary {
 		_, err := s.db.Exec(
@@ -294,6 +328,11 @@ func (s *SummaryWorker) runCreateDelegationSummaryTask() {
 			summary.TodayLeftDecreasedDelegationAmount.B2B,
 			summary.TodayLeftDecreasedDelegationAmount.B2C,
 			summary.TodayLeftDecreasedDelegationAmount.Unknown,
+
+			summary.TodayDelegationAmount.Sum,
+			summary.TodayDelegationAmount.B2B,
+			summary.TodayDelegationAmount.B2C,
+			summary.TodayDelegationAmount.Unknown,
 		)
 		if err != nil {
 			log.Err(err).Msg("cannot create delegation summary")
@@ -303,12 +342,11 @@ func (s *SummaryWorker) runCreateDelegationSummaryTask() {
 
 func (s *SummaryWorker) RunSummaryWorker() {
 	s.initSummaryWorker()
-	s.setPreviousDayDelegations()
+	s.runPreviousDayDelegationsTask()
+	s.runTodayDelegationsTask()
 	s.runDelegationChangedTask()
 	s.runNewDelegatorTask()
 	s.runLeftDelegatorTask()
 	s.runReturnedDelegatorTask()
 	s.runCreateDelegationSummaryTask()
-
-	services.AddToCache("delegation_summary", s.summary)
 }

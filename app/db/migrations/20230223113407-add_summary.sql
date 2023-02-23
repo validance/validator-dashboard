@@ -34,6 +34,11 @@ CREATE TABLE delegation_summary
     today_left_decreased_delegation_amount_b2c         DOUBLE PRECISION NOT NULL DEFAULT 0,
     today_left_decreased_delegation_amount_unknown     DOUBLE PRECISION NOT NULL DEFAULT 0,
 
+    today_delegation_amount_total                      DOUBLE PRECISION NOT NULL DEFAULT 0,
+    today_delegation_amount_b2b                        DOUBLE PRECISION NOT NULL DEFAULT 0,
+    today_delegation_amount_b2c                        DOUBLE PRECISION NOT NULL DEFAULT 0,
+    today_delegation_amount_unknown                    DOUBLE PRECISION NOT NULL DEFAULT 0,
+
     create_dt                                          TIMESTAMP        NOT NULL DEFAULT current_timestamp
 );
 

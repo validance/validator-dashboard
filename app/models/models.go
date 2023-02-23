@@ -34,6 +34,8 @@ type GrantReward struct {
 type DelegationSummary struct {
 	// 기존 전일 위임량
 	YesterdayDelegationAmount *DelegationSummaryLabel
+	// 당일 총 위임량
+	TodayDelegationAmount *DelegationSummaryLabel
 	// 기존 당일 추가 위임량
 	TodayExistingIncreasedDelegationAmount *DelegationSummaryLabel
 	// 신규 당일 추가 위임량
