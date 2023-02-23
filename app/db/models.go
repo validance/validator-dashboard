@@ -56,6 +56,16 @@ type IncomeHistory struct {
 	CommissionValue float64   `db:"commission_value"`
 }
 
+type GrantRewardHistory struct {
+	Id           int       `db:"id"`
+	GrantAddress string    `db:"grant_address"`
+	Validator    string    `db:"validator"`
+	Chain        string    `db:"chain"`
+	Reward       float64   `db:"reward"`
+	CreateDt     time.Time `db:"create_dt"`
+	RewardValue  float64   `db:"reward_value"`
+}
+
 type DelegationSummaryHistory struct {
 	Id                                            int       `db:"id"`
 	Chain                                         string    `db:"chain"`
