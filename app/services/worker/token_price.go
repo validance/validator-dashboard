@@ -58,14 +58,6 @@ func (t *TokenPriceTask) createNewTokenPrices(tps []*database.TokenPrice) {
 }
 
 func (t *TokenPriceTask) getNewTokenPrice(chainId string) (*database.TokenPrice, error) {
-	var tokenPrice *database.TokenPrice
-
-	client := &http.Client{}
-	req, err := http.NewRequest("GET", "https://api.coingecko.com/api/v3/coins/"+chainId+"/history", nil)
-	if err != nil {
-		log.Err(err).Msg("failed to create http request")
-		return nil, err
-	}
 
 	yesterday := time.Now().AddDate(0, 0, -1).Format("02-01-2006")
 
@@ -73,10 +65,7 @@ func (t *TokenPriceTask) getNewTokenPrice(chainId string) (*database.TokenPrice,
 	q.Add("date", yesterday)
 	q.Add("localization", "false")
 
-	req.Header.Set("Accepts", "application/json")
-	req.URL.RawQuery = q.Encode()
-
-	resp, err := client.Do(req)
+	resp, err := http.Get("https://api.coingecko.com/api/v3/coins/" + chainId + "/history?" + q.Encode())
 	if err != nil {
 		log.Err(err).Msg("failed to receive token price from api")
 		return nil, err
@@ -84,10 +73,10 @@ func (t *TokenPriceTask) getNewTokenPrice(chainId string) (*database.TokenPrice,
 
 	respBytes, _ := ioutil.ReadAll(resp.Body)
 
-	respBody := CoinHistoryResponse{}
+	var respBody CoinHistoryResponse
 	json.Unmarshal(respBytes, &respBody)
 
-	tokenPrice = &database.TokenPrice{
+	tokenPrice := &database.TokenPrice{
 		Chain:  respBody.Symbol,
 		Ticker: respBody.Symbol,
 		Price:  respBody.MarketData.CurrentPrice.Usd,
@@ -115,7 +104,6 @@ func (t *TokenPriceTask) RunTokenPriceTask() {
 			if newTokenPrice != nil {
 				newTokenPrices = append(newTokenPrices, newTokenPrice)
 			}
-
 		}()
 	}
 
