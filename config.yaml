@@ -5,6 +5,10 @@ app:
 
 coingeckoIds:
   - juno-network
+  - osmosis
+  - stargaze
+  - medibloc
+  - evmos
 
 database:
   host: validator-dashboard.chexhu4rkdnf.ap-northeast-2.rds.amazonaws.com
@@ -23,13 +27,30 @@ cosmos:
       grantAddrs:
         - juno1s33zct2zhhaf60x4a90cpe9yquw99jj0zen8pt
         - juno1kq2lsya5sxv4my0xwwed68mkjrsktf7jguslef
-
-#  - osmosis:
-#      grpcUrl: osmosis-grpc.polkachu.com:12590
-#      denom: uosmo
-#      validatorOperatorAddr: osmovaloper18m4wkxw865cmxu7wv43pk9wgssw022kjyxz6wz
-#      validatorAddr: osmo18m4wkxw865cmxu7wv43pk9wgssw022kj732ee9
-#      exponent: 6
+  - osmosis:
+     grpcUrl: osmosis-grpc.polkachu.com:12590
+     denom: uosmo
+     validatorOperatorAddr: osmovaloper18m4wkxw865cmxu7wv43pk9wgssw022kjyxz6wz
+     validatorAddr: osmo18m4wkxw865cmxu7wv43pk9wgssw022kj732ee9
+     exponent: 6
+  - stargaze:
+     grpcUrl: stargaze-grpc.polkachu.com:13790
+     denom: ustars
+     validatorOperatorAddr: starsvaloper1p3ga5uyzl9hum0j5qv0f5vysyevvwc8rxxhqws
+     validatorAddr: stars1p3ga5uyzl9hum0j5qv0f5vysyevvwc8rdcr54g
+     exponent: 6
+  - panacea:
+     grpcUrl: grpc.gopanacea.org
+     denom: umed
+     validatorOperatorAddr: panaceavaloper1peaw8ez02szsqhc3pf2xsfdfnqd6t2mhk44un4
+     validatorAddr: panacea1peaw8ez02szsqhc3pf2xsfdfnqd6t2mh3h4u0t
+     exponent: 6
+  - evmos:
+     grpcUrl: evmos-grpc.polkachu.com:13490
+     denom: aevmos
+     validatorOperatorAddr: evmosvaloper1k96y0w5wf089nuvvym3s324c8umd3vvm4yh578
+     validatorAddr: evmos1k96y0w5wf089nuvvym3s324c8umd3vvmc2cyl6
+     exponent: 18
 
 aptos:
   validatorAddr: 0x1
