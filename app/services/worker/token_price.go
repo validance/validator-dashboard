@@ -57,7 +57,7 @@ func (t *TokenPriceTask) createNewTokenPrices(tps []*database.TokenPrice) {
 	}
 }
 
-func (t *TokenPriceTask) getNewTokenPrice(chainId string) (*database.TokenPrice, error) {
+func (t *TokenPriceTask) getNewTokenPrice(chainId string, chainName string) (*database.TokenPrice, error) {
 
 	yesterday := time.Now().AddDate(0, 0, -1).Format("02-01-2006")
 
@@ -77,7 +77,7 @@ func (t *TokenPriceTask) getNewTokenPrice(chainId string) (*database.TokenPrice,
 	json.Unmarshal(respBytes, &respBody)
 
 	tokenPrice := &database.TokenPrice{
-		Chain:  respBody.Symbol,
+		Chain:  chainName,
 		Ticker: respBody.Symbol,
 		Price:  respBody.MarketData.CurrentPrice.Usd,
 	}
@@ -89,18 +89,20 @@ func (t *TokenPriceTask) RunTokenPriceTask() {
 	var newTokenPrices []*database.TokenPrice
 
 	chainIds := config.GetConfig().CoingeckoIds
+	chains := config.GetConfig().Chains
 
 	tasksNum := len(chainIds)
 	var wg sync.WaitGroup
 
 	wg.Add(tasksNum)
 
-	for _, chainId := range chainIds {
+	for i, chainId := range chainIds {
 		chainId := chainId
+		chainName := chains[i]
 		go func() {
 			defer wg.Done()
 
-			newTokenPrice, _ := t.getNewTokenPrice(chainId)
+			newTokenPrice, _ := t.getNewTokenPrice(chainId, chainName)
 			if newTokenPrice != nil {
 				newTokenPrices = append(newTokenPrices, newTokenPrice)
 			}

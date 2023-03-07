@@ -1,14 +1,27 @@
 app:
   host: localhost
   port: 8000
-  cron: 16:49:20
+  cron: 01:40:00
 
 coingeckoIds:
   - juno-network
   - osmosis
   - stargaze
   - medibloc
+  - cosmos
   - evmos
+  - matic-network
+  - aptos
+
+chains:
+  - juno
+  - osmosis
+  - stargaze
+  - panacea
+  - cosmoshub
+  - evmos
+  - polygon
+  - aptos
 
 database:
   host: validator-dashboard.chexhu4rkdnf.ap-northeast-2.rds.amazonaws.com
@@ -27,12 +40,16 @@ cosmos:
       grantAddrs:
         - juno1s33zct2zhhaf60x4a90cpe9yquw99jj0zen8pt
         - juno1kq2lsya5sxv4my0xwwed68mkjrsktf7jguslef
+      coingeckoId: juno-network
+      chainName: juno
   - osmosis:
      grpcUrl: osmosis-grpc.polkachu.com:12590
      denom: uosmo
      validatorOperatorAddr: osmovaloper18m4wkxw865cmxu7wv43pk9wgssw022kjyxz6wz
      validatorAddr: osmo18m4wkxw865cmxu7wv43pk9wgssw022kj732ee9
      exponent: 6
+     coingeckoId: osmosis
+     chainName: osmosis
   - stargaze:
      grpcUrl: stargaze-grpc.polkachu.com:13790
      denom: ustars
@@ -51,10 +68,21 @@ cosmos:
      validatorOperatorAddr: evmosvaloper1k96y0w5wf089nuvvym3s324c8umd3vvm4yh578
      validatorAddr: evmos1k96y0w5wf089nuvvym3s324c8umd3vvmc2cyl6
      exponent: 18
+  - cosmoshub:
+     grpcUrl: cosmos-grpc.polkachu.com:14990
+     denom: uatom
+     validatorOperatorAddr: cosmosvaloper1v78emy9d2xe3tj974l7tmn2whca2nh9zp7s0u9
+     validatorAddr: cosmos1v78emy9d2xe3tj974l7tmn2whca2nh9zy2y6sk
+     exponent: 6
 
 aptos:
   validatorAddr: 0x1
 
 
 polygon:
-  validatorAddr: 0x1
+  validatorIndex: 145
+  signerAddr: 0xd6dbd84137d9337b01583b1c23c14b1d0da8e1cd
+  ownerAddr: 0xb43fb23f5979bff557c9f50dd52f00edb7d3cc54
+  denom: MATIC
+  exponent: 18
+  endpointUrl: https://staking-api.polygon.technology/api/v2/

@@ -14,7 +14,7 @@ type Client interface {
 	GrantRewards() (map[string]*models.GrantReward, error)
 }
 
-func initializeCosmos() ([]Client, error) {
+func InitializeCosmos() ([]Client, error) {
 	var cosmosChains []Client
 
 	cosmosConfig := config.GetConfig().Cosmos
@@ -33,7 +33,7 @@ func initializeCosmos() ([]Client, error) {
 }
 
 // TODO: initialize aptos client with config
-func initializeAptos() (Client, error) {
+func InitializeAptos() (Client, error) {
 	aptosConfig := config.GetConfig().Aptos
 	_ = aptosConfig
 	_ = NewAptosClient()
@@ -42,29 +42,29 @@ func initializeAptos() (Client, error) {
 }
 
 // TODO: initialize polygon client with config
-func initializePolygon() (Client, error) {
+func InitializePolygon() (Client, error) {
 	polygonConfig := config.GetConfig().Polygon
-	_ = polygonConfig
-	_ = NewPolygonClient()
-	// TODO: return nil when failed to initialize aptos client
-
-	return nil, nil
+	client, err := NewPolygonClient(polygonConfig.EndpointUrl, polygonConfig.Denom, polygonConfig.Exponent, polygonConfig.OwnerAddr, polygonConfig.ValidatorIndex)
+	if err != nil {
+		return nil, err
+	}
+	return client, nil
 }
 
 func Initialize() []Client {
 	var clients []Client
 
-	cosmosClients, cosmosErr := initializeCosmos()
+	cosmosClients, cosmosErr := InitializeCosmos()
 	if cosmosErr != nil {
 		log.Err(cosmosErr).Msg("failed to initialize cosmos clients")
 	}
 
-	aptosClient, aptosErr := initializeAptos()
+	aptosClient, aptosErr := InitializeAptos()
 	if aptosErr != nil {
 		log.Err(aptosErr).Msg("failed to initialize aptos client")
 	}
 
-	polygonClient, polygonErr := initializePolygon()
+	polygonClient, polygonErr := InitializePolygon()
 	if polygonErr != nil {
 		log.Err(polygonErr).Msg("failed to initialize polygon client")
 	}
