@@ -12,4 +12,5 @@ func AddRouters(app *gin.Engine) {
 	controllers.AddDelegationRouters(v1)
 	controllers.AddIncomeRouters(v1)
 	controllers.AddGrantRewardRouters(v1)
+	controllers.AddAddressRouters(v1)
 }
