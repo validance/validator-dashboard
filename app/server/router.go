@@ -13,4 +13,7 @@ func AddRouters(app *gin.Engine) {
 	controllers.AddIncomeRouters(v1)
 	controllers.AddGrantRewardRouters(v1)
 	controllers.AddAddressRouters(v1)
+
+	test := app.Group("/test")
+	controllers.AddTestRouters(test)
 }

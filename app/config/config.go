@@ -13,6 +13,7 @@ var once sync.Once
 type Config struct {
 	App          App                       `mapstructure:"app"`
 	CoingeckoIds []string                  `mapstructure:"coingeckoIds"`
+	Chains       []string                  `mapstructure:"chains"`
 	Database     Database                  `mapstructure:"database"`
 	Cosmos       map[string]CosmosAppchain `mapstructure:"cosmos"`
 	Aptos        Aptos                     `mapstructure:"aptos"`
@@ -48,7 +49,12 @@ type Aptos struct {
 }
 
 type Polygon struct {
-	validatorAddr string
+	ValidatorIndex int    `mapstructure:"validatorIndex"`
+	SignerAddr     string `mapstructure:"signerAddr"`
+	OwnerAddr      string `mapstructure:"ownerAddr"`
+	Denom          string `mapstructure:"denom"`
+	Exponent       int    `mapstructure:"exponent"`
+	EndpointUrl    string `mapstructure:"endpointUrl"`
 }
 
 func GetConfig() *Config {
