@@ -1,9 +1,10 @@
 package config
 
 import (
+	"sync"
+
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
-	"sync"
 )
 
 var config *Config
@@ -20,9 +21,10 @@ type Config struct {
 }
 
 type App struct {
-	Host string `mapstructure:"host"`
-	Port string `mapstructure:"port"`
-	Cron string `mapstructure:"cron"`
+	Host         string   `mapstructure:"host"`
+	Port         string   `mapstructure:"port"`
+	Cron         string   `mapstructure:"cron"`
+	AllowOrigins []string `mapstructure:"allowOrigins"`
 }
 
 type Database struct {
