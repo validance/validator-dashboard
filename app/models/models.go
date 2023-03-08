@@ -54,3 +54,7 @@ type DelegationSummaryLabel struct {
 	Unknown float64
 	Sum     float64
 }
+
+type PatchAddressBody struct {
+	Label string
+}
