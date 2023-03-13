@@ -124,3 +124,36 @@ type DelegationSummaryHistory struct {
 	TodayDelegationAmountUnknown                  float64   `db:"today_delegation_amount_unknown"`
 	CreateDt                                      time.Time `db:"create_dt"`
 }
+
+type DelegationSummary struct {
+	YesterdayDelegationValueTotal                float64 `db:"yesterday_delegation_value_total"`
+	YesterdayDelegationValueB2B                  float64 `db:"yesterday_delegation_value_b2b"`
+	YesterdayDelegationValueB2C                  float64 `db:"yesterday_delegation_value_b2c"`
+	YesterdayDelegationValueUnknown              float64 `db:"yesterday_delegation_value_unknown"`
+	TodayExistingIncreasedDelegationValueTotal   float64 `db:"today_existing_increased_delegation_value_total"`
+	TodayExistingIncreasedDelegationValueB2B     float64 `db:"today_existing_increased_delegation_value_b2b"`
+	TodayExistingIncreasedDelegationValueB2C     float64 `db:"today_existing_increased_delegation_value_b2c"`
+	TodayExistingIncreasedDelegationValueUnknown float64 `db:"today_existing_increased_delegation_value_unknown"`
+	TodayNewIncreasedDelegationValueTotal        float64 `db:"today_new_increased_delegation_value_total"`
+	TodayNewIncreasedDelegationValueB2B          float64 `db:"today_new_increased_delegation_value_b2b"`
+	TodayNewIncreasedDelegationValueB2C          float64 `db:"today_new_increased_delegation_value_b2c"`
+	TodayNewIncreasedDelegationValueUnknown      float64 `db:"today_new_increased_delegation_value_unknown"`
+	TodayReturnIncreasedDelegationValueTotal     float64 `db:"today_return_increased_delegation_value_total"`
+	TodayReturnIncreasedDelegationValueB2B       float64 `db:"today_return_increased_delegation_value_b2b"`
+	TodayReturnIncreasedDelegationValueB2C       float64 `db:"today_return_increased_delegation_value_b2c"`
+	TodayReturnIncreasedDelegationValueUnknown   float64 `db:"today_return_increased_delegation_value_unknown"`
+	TodayExistingDecreasedDelegationValueTotal   float64 `db:"today_existing_decreased_delegation_value_total"`
+	TodayExistingDecreasedDelegationValueB2B     float64 `db:"today_existing_decreased_delegation_value_b2b"`
+	TodayExistingDecreasedDelegationValueB2C     float64 `db:"today_existing_decreased_delegation_value_b2c"`
+	TodayExistingDecreasedDelegationValueUnknown float64 `db:"today_existing_decreased_delegation_value_unknown"`
+	TodayLeftDecreasedDelegationValueTotal       float64 `db:"today_left_decreased_delegation_value_total"`
+	TodayLeftDecreasedDelegationValueB2B         float64 `db:"today_left_decreased_delegation_value_b2b"`
+	TodayLeftDecreasedDelegationValueB2C         float64 `db:"today_left_decreased_delegation_value_b2c"`
+	TodayLeftDecreasedDelegationValueUnknown     float64 `db:"today_left_decreased_delegation_value_unknown"`
+}
+
+type IncomeSummary struct {
+	TotalRewardValue      float64 `db:"total_reward_value"`
+	TotalCommissionValue  float64 `db:"total_commission_value"`
+	TotalGrantRewardValue float64 `db:"total_grant_reward_value"`
+}

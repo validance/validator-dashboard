@@ -1,21 +1,32 @@
 package controllers
 
 import (
-	"github.com/gin-gonic/gin"
 	"net/http"
 	"validator-dashboard/app/services/app"
+
+	"github.com/gin-gonic/gin"
 )
 
-func delegation(c *gin.Context) {
+func getDelegationHistories(c *gin.Context) {
 	chain := c.Param("chain")
-	histories := app.DelegationSummaryHistories(chain)
+	histories := app.DelegationSummaryHistoriesByChain(chain)
 
 	c.JSON(http.StatusOK, histories)
+}
+
+func getDelegationSummary(c *gin.Context) {
+	date := c.Param("date")
+	summary := app.DelegationSummaryByDate(date)
+
+	c.JSON(http.StatusOK, summary)
 }
 
 func AddDelegationRouters(r *gin.RouterGroup) {
 	d := r.Group("/delegations")
 	{
-		d.GET("/:chain", delegation)
+		d.GET("/chains/:chain", getDelegationHistories)
+	}
+	{
+		d.GET("/summaries/:date", getDelegationSummary)
 	}
 }
