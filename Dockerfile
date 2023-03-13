@@ -1,7 +1,7 @@
 FROM golang:1.18
 
 # Go 프로젝트 코드 복사
-COPY . /app
+COPY app /app
 
 # 작업 디렉토리로 이동
 WORKDIR /app
