@@ -1,7 +1,7 @@
 app:
   host: localhost
   port: 8000
-  cron: 07:34:00
+  cron: 12:35:00
   allowOrigins:
     - http://localhost:3000
     - https://validator-dashboard-interface.vercel.app
