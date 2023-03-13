@@ -8,6 +8,7 @@ WORKDIR /app/app
 
 # 필요한 종속성 설치
 RUN go mod download
+RUN sudo ln -snf /usr/share/zoneinfo/Asia/Seoul /etc/localtime
 
 # 프로젝트 빌드
 RUN go build -o ../dashboard
