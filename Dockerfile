@@ -1,4 +1,4 @@
-FROM golang:1.18
+FROM 1.19.7-alpine
 
 # Go 프로젝트 코드 복사
 COPY . /app
@@ -8,7 +8,10 @@ WORKDIR /app/app
 
 # 필요한 종속성 설치
 RUN go mod download
-RUN sudo ln -snf /usr/share/zoneinfo/Asia/Seoul /etc/localtime
+# timezone 설정
+RUN apk add tzdata  \
+    && cp /usr/share/zoneinfo/Asia/Seoul /etc/localtime  \
+    && echo "Asia/Seoul" > /etc/timezone
 
 # 프로젝트 빌드
 RUN go build -o ../dashboard
