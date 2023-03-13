@@ -1,4 +1,4 @@
-FROM 1.19.7-alpine
+FROM golang:1.19.7-alpine
 
 # Go 프로젝트 코드 복사
 COPY . /app
